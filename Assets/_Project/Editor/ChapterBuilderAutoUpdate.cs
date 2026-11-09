@@ -8,7 +8,7 @@ namespace Frustration.EditorTools
     static class ChapterBuilderAutoUpdate
     {
         // Увеличивай это число каждый раз, когда меняется Chapter1Builder.
-        const int SceneVersion = 2;
+        const int SceneVersion = 3;
         const string PrefKey = "Frustration.Chapter1.SceneVersion";
 
         static ChapterBuilderAutoUpdate()
@@ -24,7 +24,7 @@ namespace Frustration.EditorTools
 
             bool rebuild = EditorUtility.DisplayDialog(
                 "Frustration: сцена обновилась",
-                "В сборщике сцены пролога есть изменения (ранец, бутылки).\n\n" +
+                "В сборщике сцены пролога есть изменения (зеркало в коридоре, советский интерьер).\n\n" +
                 "Пересобрать сцену Chapter1_Morning сейчас? Ручные правки в этой сцене пропадут.",
                 "Пересобрать", "Не сейчас");
 

@@ -9,7 +9,7 @@ namespace Frustration.EditorTools
     // Собирает черновую сцену пролога из простых кубов: квартира утром 1 сентября 2004 года.
     // Запуск: меню Frustration > Build Chapter 1. Сцена перезаписывается целиком,
     // поэтому ручные правки лучше делать уже в копии или после того, как сборщик больше не нужен.
-    public static class Chapter1Builder
+    public static partial class Chapter1Builder
     {
         const string Root = "Assets/_Project";
         const string ScenePath = Root + "/Scenes/Chapter1_Morning.unity";
@@ -42,7 +42,9 @@ namespace Frustration.EditorTools
             BuildKidRoom();
             BuildKitchen();
             BuildHallway();
-            BuildPlayerAndSystems();
+            BuildInterior();
+            var player = BuildPlayerAndSystems();
+            BuildMirror(player);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -85,7 +87,12 @@ namespace Frustration.EditorTools
 
             // Наружные стены.
             WallX(parent, 6f, 0f, 7f, wall);       // север
-            WallX(parent, 1.6f, 0f, 7f, wall);     // юг
+            // Южная стена коридора с проёмом под зеркало. Части названы "Mirror ...",
+            // чтобы они не копировались в комнату-отражение.
+            Box("Mirror Wall Left", parent, new Vector3(MirrorX0 / 2f, WallHeight / 2f, 1.6f), new Vector3(MirrorX0, WallHeight, WallThickness), wall);
+            Box("Mirror Wall Right", parent, new Vector3((MirrorX1 + 7f) / 2f, WallHeight / 2f, 1.6f), new Vector3(7f - MirrorX1, WallHeight, WallThickness), wall);
+            Box("Mirror Wall Below", parent, new Vector3((MirrorX0 + MirrorX1) / 2f, MirrorY0 / 2f, 1.6f), new Vector3(MirrorX1 - MirrorX0, MirrorY0, WallThickness), wall);
+            Box("Mirror Wall Above", parent, new Vector3((MirrorX0 + MirrorX1) / 2f, (MirrorY1 + WallHeight) / 2f, 1.6f), new Vector3(MirrorX1 - MirrorX0, WallHeight - MirrorY1, WallThickness), wall);
             WallZ(parent, 7f, 1.6f, 6f, wall);     // восток
             WallZ(parent, 0f, 1.6f, 1.85f, wall);  // запад, слева от входной двери
             WallZ(parent, 0f, 2.75f, 6f, wall);    // запад, справа от двери
@@ -219,7 +226,7 @@ namespace Frustration.EditorTools
 
         // ---------- Игрок, интерфейс, звук ----------
 
-        static void BuildPlayerAndSystems()
+        static Transform BuildPlayerAndSystems()
         {
             var player = new GameObject("Player");
             player.transform.position = new Vector3(1.4f, 0.05f, 4.6f);
@@ -257,6 +264,7 @@ namespace Frustration.EditorTools
 
             var drone = new GameObject("Ambience Drone");
             AddSound(drone, ProceduralAmbience.Kind.Drone, 0.3f, false);
+            return player.transform;
         }
 
         // ---------- Предметы из нескольких частей ----------

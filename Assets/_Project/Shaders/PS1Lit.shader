@@ -44,6 +44,11 @@ Shader "Frustration/PS1 Lit"
                 float _Affine;
             CBUFFER_END
 
+            // Плоскость зеркала (нормаль xyz, смещение w), задаётся скриптом MirrorWorld.
+            // Свет с одной стороны зеркала не освещает предметы с другой стороны,
+            // иначе лампы настоящей комнаты светили бы на комнату-отражение и наоборот.
+            float4 _MirrorPlane;
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -84,8 +89,18 @@ Shader "Frustration/PS1 Lit"
 
                 #if defined(_ADDITIONAL_LIGHTS) || defined(_ADDITIONAL_LIGHTS_VERTEX)
                 uint lightCount = GetAdditionalLightsCount();
+                float vertexSide = dot(positions.positionWS, _MirrorPlane.xyz) + _MirrorPlane.w;
                 for (uint i = 0u; i < lightCount; ++i)
                 {
+                    int lightIndex = GetPerObjectLightIndex(i);
+                    #if USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
+                    float3 lightPosition = _AdditionalLightsBuffer[lightIndex].position.xyz;
+                    #else
+                    float3 lightPosition = _AdditionalLightsPosition[lightIndex].xyz;
+                    #endif
+                    float lightSide = dot(lightPosition, _MirrorPlane.xyz) + _MirrorPlane.w;
+                    if (vertexSide * lightSide < 0.0) continue;
+
                     Light light = GetAdditionalLight(i, positions.positionWS);
                     lighting += light.color * light.distanceAttenuation * saturate(dot(normalWS, light.direction));
                 }

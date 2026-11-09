@@ -8,7 +8,7 @@ namespace Frustration
     [RequireComponent(typeof(AudioSource))]
     public class ProceduralAmbience : MonoBehaviour
     {
-        public enum Kind { Drone, FridgeHum, TvStatic }
+        public enum Kind { Drone, FridgeHum, TvStatic, ClockTick }
 
         public Kind kind = Kind.Drone;
         [Range(0f, 1f)] public float volume = 0.4f;
@@ -17,6 +17,7 @@ namespace Frustration
         void Start()
         {
             const int rate = 44100;
+            if (kind == Kind.ClockTick) clipSeconds = 2f; // "тик" и "так" по секунде
             int samples = Mathf.RoundToInt(rate * clipSeconds);
             var data = new float[samples];
             var rng = new System.Random(1957);
@@ -33,6 +34,16 @@ namespace Frustration
                         // Сетевой гул 50 Гц и его гармоника.
                         s = 0.5f * Mathf.Sin(2f * Mathf.PI * 50f * t) + 0.25f * Mathf.Sin(2f * Mathf.PI * 100f * t) + 0.05f * noise;
                         break;
+                    case Kind.ClockTick:
+                    {
+                        // Короткий щелчок в начале каждой секунды: шум под быстро гаснущей огибающей.
+                        // "Тик" выше, "так" ниже.
+                        float local = t % 1f;
+                        float pitch = t < 1f ? 2400f : 1700f;
+                        float envelope = Mathf.Exp(-local * 700f);
+                        s = envelope * (0.6f * noise + 0.6f * Mathf.Sin(2f * Mathf.PI * pitch * t));
+                        break;
+                    }
                     case Kind.TvStatic:
                         // Шипение: шум, слегка сглаженный, с дрожанием громкости.
                         smooth = Mathf.Lerp(smooth, noise, 0.6f);
