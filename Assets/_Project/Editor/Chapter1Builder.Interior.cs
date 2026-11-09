@@ -239,6 +239,31 @@ namespace Frustration.EditorTools
                 cursor = g.b;
             }
             if (b > cursor) AddQuad(name, parent, alongX, plane, side, cursor, b, y0, y1, material, repeat, repeat, 0f, 0f);
+
+            // Плинтус вдоль пола, с разрывами под двери (дырка под зеркало его не прерывает).
+            if (y0 <= 0f)
+            {
+                var skirting = Mat("Skirting", new Color(0.3f, 0.2f, 0.13f), woodTex);
+                float start = a;
+                foreach (var g in sorted)
+                {
+                    if (g.bottom > 0f) continue;
+                    if (g.a > start) Skirting(parent, alongX, plane, side, start, g.a, skirting);
+                    start = g.b;
+                }
+                if (b > start) Skirting(parent, alongX, plane, side, start, b, skirting);
+            }
+        }
+
+        static void Skirting(Transform parent, bool alongX, float plane, int side, float u0, float u1, Material m)
+        {
+            const float height = 0.07f, depth = 0.02f;
+            float mid = (u0 + u1) / 2f, len = u1 - u0;
+            float offset = plane + side * depth / 2f;
+            var pos = alongX ? new Vector3(mid, height / 2f, offset) : new Vector3(offset, height / 2f, mid);
+            var size = alongX ? new Vector3(len, height, depth) : new Vector3(depth, height, len);
+            var go = Box("Skirting", parent, pos, size, m);
+            Object.DestroyImmediate(go.GetComponent<Collider>());
         }
 
         // Плоский прямоугольник с UV в метрах (текстура повторяется каждые repeatU/repeatV метров).

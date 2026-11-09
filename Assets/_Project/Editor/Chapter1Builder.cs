@@ -44,6 +44,7 @@ namespace Frustration.EditorTools
             BuildHallway();
             BuildLivingRoom();
             BuildInterior();
+            BuildDetails();
             var player = BuildPlayerAndSystems();
             BuildMirror(player);
 
@@ -377,6 +378,14 @@ namespace Frustration.EditorTools
             var glass = Primitive(PrimitiveType.Quad, name, parent, position - new Vector3(0f, 0f, 0.02f), new Vector3(0.85f, 0.95f, 1f), Mat("Window Glass", Color.black, plasterTex, 1f, new Color(0.25f, 0.3f, 0.42f)));
             glass.transform.rotation = Quaternion.identity;
             Object.DestroyImmediate(glass.GetComponent<Collider>());
+
+            // Переплёт (крестовина рамы) и подоконник.
+            var frameMat = Mat("Window Frame", new Color(0.7f, 0.7f, 0.68f), plasterTex);
+            var bar1 = Box(name + " Bar", parent, position + new Vector3(0f, 0.12f, -0.03f), new Vector3(0.85f, 0.04f, 0.02f), frameMat);
+            var bar2 = Box(name + " Bar", parent, position + new Vector3(0f, 0f, -0.03f), new Vector3(0.04f, 0.95f, 0.02f), frameMat);
+            Object.DestroyImmediate(bar1.GetComponent<Collider>());
+            Object.DestroyImmediate(bar2.GetComponent<Collider>());
+            Box(name + " Sill", parent, new Vector3(position.x, position.y - 0.565f, position.z - 0.1f), new Vector3(1.15f, 0.03f, 0.22f), frameMat);
             return frame;
         }
 
