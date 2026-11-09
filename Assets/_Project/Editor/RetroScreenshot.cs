@@ -36,7 +36,13 @@ namespace Frustration.EditorTools
             cam.targetTexture = rt;
             cam.Render();
 
-            RenderTexture.active = rt;
+            // Тот же экранный эффект, что и в игре: палитра и дизеринг.
+            var final = new RenderTexture(width, height, 0) { filterMode = FilterMode.Point };
+            var retro = Resources.Load<Material>("RetroScreen");
+            if (retro != null) Graphics.Blit(rt, final, retro);
+            else Graphics.Blit(rt, final);
+
+            RenderTexture.active = final;
             var small = new Texture2D(width, height, TextureFormat.RGB24, false);
             small.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             small.Apply();
@@ -51,6 +57,7 @@ namespace Frustration.EditorTools
 
             cam.targetTexture = null;
             Object.DestroyImmediate(rt);
+            Object.DestroyImmediate(final);
             Object.DestroyImmediate(small);
             Object.DestroyImmediate(big);
             Object.DestroyImmediate(go);

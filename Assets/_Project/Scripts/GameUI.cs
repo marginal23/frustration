@@ -115,6 +115,12 @@ namespace Frustration
             gameView.transform.SetParent(canvasGo.transform, false);
             Stretch(gameView.rectTransform);
             gameView.enabled = false;
+            gameView.raycastTarget = false;
+
+            // Урезанная палитра и дизеринг. Настройки — в материале
+            // Assets/_Project/Resources/RetroScreen (можно крутить прямо во время игры).
+            var retroMaterial = Resources.Load<Material>("RetroScreen");
+            if (retroMaterial != null) gameView.material = retroMaterial;
 
             var font = customFont != null ? customFont : Font.CreateDynamicFontFromOSFont(TypewriterFonts, 32);
             if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
