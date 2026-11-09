@@ -22,6 +22,8 @@ namespace Frustration.EditorTools
         [MenuItem("Frustration/Build Chapter 1")]
         public static void Build()
         {
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+
             Directory.CreateDirectory(Root + "/Scenes");
             Directory.CreateDirectory(Root + "/Materials");
             Directory.CreateDirectory(Root + "/Textures");
