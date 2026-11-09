@@ -1,0 +1,145 @@
+// Шейдер в стиле PS1 для URP:
+// - вершины "прилипают" к сетке пикселей, поэтому модели слегка дрожат при движении камеры;
+// - текстуры без перспективной коррекции (аффинные), поэтому они "плывут" на больших полигонах;
+// - освещение считается по вершинам, как на старых консолях;
+// - поддерживает туман из Lighting Settings.
+// Для работы нужен рендерер в режиме Forward (не Forward+).
+Shader "Frustration/PS1 Lit"
+{
+    Properties
+    {
+        _BaseMap ("Texture", 2D) = "white" {}
+        _BaseColor ("Color", Color) = (1, 1, 1, 1)
+        [HDR] _EmissionColor ("Emission", Color) = (0, 0, 0, 1)
+        _SnapScale ("Vertex Snap (0 = off)", Range(0, 1)) = 0.5
+        _Affine ("Affine Texture Warp", Range(0, 1)) = 1
+    }
+
+    SubShader
+    {
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Queue" = "Geometry" }
+
+        Pass
+        {
+            Name "ForwardLit"
+            Tags { "LightMode" = "UniversalForward" }
+
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_fog
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+            TEXTURE2D(_BaseMap);
+            SAMPLER(sampler_BaseMap);
+
+            CBUFFER_START(UnityPerMaterial)
+                float4 _BaseMap_ST;
+                half4 _BaseColor;
+                half4 _EmissionColor;
+                float _SnapScale;
+                float _Affine;
+            CBUFFER_END
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 uvw : TEXCOORD0;
+                half3 lighting : TEXCOORD1;
+                half fogFactor : TEXCOORD2;
+            };
+
+            Varyings vert(Attributes input)
+            {
+                Varyings output;
+                VertexPositionInputs positions = GetVertexPositionInputs(input.positionOS.xyz);
+                float4 positionCS = positions.positionCS;
+
+                if (_SnapScale > 0.001)
+                {
+                    float2 grid = _ScreenParams.xy * _SnapScale;
+                    float2 ndc = positionCS.xy / positionCS.w;
+                    ndc = floor(ndc * grid + 0.5) / grid;
+                    positionCS.xy = ndc * positionCS.w;
+                }
+                output.positionCS = positionCS;
+
+                float2 uv = TRANSFORM_TEX(input.uv, _BaseMap);
+                float w = lerp(1.0, positionCS.w, _Affine);
+                output.uvw = float3(uv * w, w);
+
+                float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
+                Light mainLight = GetMainLight();
+                half3 lighting = mainLight.color * saturate(dot(normalWS, mainLight.direction));
+
+                #if defined(_ADDITIONAL_LIGHTS) || defined(_ADDITIONAL_LIGHTS_VERTEX)
+                uint lightCount = GetAdditionalLightsCount();
+                for (uint i = 0u; i < lightCount; ++i)
+                {
+                    Light light = GetAdditionalLight(i, positions.positionWS);
+                    lighting += light.color * light.distanceAttenuation * saturate(dot(normalWS, light.direction));
+                }
+                #endif
+
+                lighting += SampleSH(normalWS);
+                output.lighting = lighting;
+                output.fogFactor = ComputeFogFactor(positionCS.z);
+                return output;
+            }
+
+            half4 frag(Varyings input) : SV_Target
+            {
+                float2 uv = input.uvw.xy / input.uvw.z;
+                half4 color = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv) * _BaseColor;
+                color.rgb = color.rgb * input.lighting + _EmissionColor.rgb;
+                color.rgb = MixFog(color.rgb, input.fogFactor);
+                return color;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On
+            ColorMask R
+
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+                float4 _BaseMap_ST;
+                half4 _BaseColor;
+                half4 _EmissionColor;
+                float _SnapScale;
+                float _Affine;
+            CBUFFER_END
+
+            float4 vert(float4 positionOS : POSITION) : SV_POSITION
+            {
+                return TransformObjectToHClip(positionOS.xyz);
+            }
+
+            half frag() : SV_Target
+            {
+                return 0;
+            }
+            ENDHLSL
+        }
+    }
+
+    FallBack "Hidden/Universal Render Pipeline/FallbackError"
+}
