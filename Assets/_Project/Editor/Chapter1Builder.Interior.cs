@@ -67,7 +67,7 @@ namespace Frustration.EditorTools
             Panel("Wallpaper", hall, true, 3f, -1, 0f, 7f, 0f, WallHeight, new[] { doorKid, doorKitchen }, wallpaperHall, 0.5f);
             Panel("Wallpaper", hall, true, 1.6f, +1, 0f, 7f, 0f, WallHeight, new[] { mirrorHole }, wallpaperHall, 0.5f);
             Panel("Wallpaper", hall, false, 0f, +1, 1.6f, 3f, 0f, WallHeight, new[] { frontDoor }, wallpaperHall, 0.5f);
-            Panel("Wallpaper", hall, false, 7f, -1, 1.6f, 3f, 0f, WallHeight, NoGaps, wallpaperHall, 0.5f);
+            Panel("Wallpaper", hall, false, 7f, -1, 1.6f, 3f, 0f, WallHeight, new[] { LivingRoomDoor }, wallpaperHall, 0.5f);
 
             // --- Детская ---
             // Ковёр на стене над кроватью: классика советской квартиры.
@@ -147,7 +147,7 @@ namespace Frustration.EditorTools
             var mirrorRoot = new GameObject("Mirror World").transform;
             mirrorRoot.position = new Vector3(0f, 0f, 2f * MirrorPlaneZ);
             mirrorRoot.localScale = new Vector3(1f, 1f, -1f);
-            foreach (var groupName in new[] { "Apartment", "Kid Room", "Kitchen", "Hallway" })
+            foreach (var groupName in new[] { "Apartment", "Kid Room", "Kitchen", "Hallway", "Living Room" })
             {
                 var original = GameObject.Find(groupName);
                 var copy = Object.Instantiate(original, mirrorRoot);
@@ -190,7 +190,9 @@ namespace Frustration.EditorTools
                 var o = originals[i];
                 var c = copies[i];
 
-                if (o.name.StartsWith("Mirror")) { toDelete.Add(c.gameObject); continue; }
+                // "Mirror ..." — сама рама и стена с зеркалом; "(no mirror)" — стены в плоскости зеркала,
+                // копия которых вылезла бы в настоящую комнату.
+                if (o.name.StartsWith("Mirror") || o.name.Contains("(no mirror)")) { toDelete.Add(c.gameObject); continue; }
 
                 var interactable = o.GetComponent<Interactable>();
                 if (interactable != null && interactable.hideAfterUse)

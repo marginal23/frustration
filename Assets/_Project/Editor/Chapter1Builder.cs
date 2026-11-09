@@ -42,6 +42,7 @@ namespace Frustration.EditorTools
             BuildKidRoom();
             BuildKitchen();
             BuildHallway();
+            BuildLivingRoom();
             BuildInterior();
             var player = BuildPlayerAndSystems();
             BuildMirror(player);
@@ -93,7 +94,10 @@ namespace Frustration.EditorTools
             Box("Mirror Wall Right", parent, new Vector3((MirrorX1 + 7f) / 2f, WallHeight / 2f, 1.6f), new Vector3(7f - MirrorX1, WallHeight, WallThickness), wall);
             Box("Mirror Wall Below", parent, new Vector3((MirrorX0 + MirrorX1) / 2f, MirrorY0 / 2f, 1.6f), new Vector3(MirrorX1 - MirrorX0, MirrorY0, WallThickness), wall);
             Box("Mirror Wall Above", parent, new Vector3((MirrorX0 + MirrorX1) / 2f, (MirrorY1 + WallHeight) / 2f, 1.6f), new Vector3(MirrorX1 - MirrorX0, WallHeight - MirrorY1, WallThickness), wall);
-            WallZ(parent, 7f, 1.6f, 6f, wall);     // восток
+            // Восточная стена: проём из коридора в зал.
+            WallZ(parent, 7f, 1.6f, 1.85f, wall);
+            WallZ(parent, 7f, 2.75f, 6f, wall);
+            Lintel(parent, new Vector3(7f, 0f, 2.3f), new Vector3(WallThickness, 0f, 0.9f), wall);
             WallZ(parent, 0f, 1.6f, 1.85f, wall);  // запад, слева от входной двери
             WallZ(parent, 0f, 2.75f, 6f, wall);    // запад, справа от двери
             Lintel(parent, new Vector3(0f, 0f, 2.3f), new Vector3(WallThickness, 0f, 0.9f), wall);
