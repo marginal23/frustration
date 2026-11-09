@@ -13,6 +13,11 @@ namespace Frustration
         [TextArea] public string introTitle = "МопсГрад";
         [TextArea] public string introSubtitle = "1 сентября 2004 года";
 
+        // Свой шрифт можно перетащить сюда в инспекторе (например, пиксельный .ttf).
+        // Если пусто, берётся системный моноширинный шрифт в духе печатной машинки.
+        public Font customFont;
+        static readonly string[] TypewriterFonts = { "Courier New", "Lucida Console", "Consolas" };
+
         Text promptText;
         Text subtitleText;
         Text titleText;
@@ -111,7 +116,8 @@ namespace Frustration
             Stretch(gameView.rectTransform);
             gameView.enabled = false;
 
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var font = customFont != null ? customFont : Font.CreateDynamicFontFromOSFont(TypewriterFonts, 32);
+            if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             promptText = MakeText(canvasGo.transform, font, 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.42f), new Color(0.85f, 0.85f, 0.8f, 0.9f));
             subtitleText = MakeText(canvasGo.transform, font, 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.12f), new Color(0.95f, 0.93f, 0.85f));
 
@@ -130,6 +136,7 @@ namespace Frustration
             text.transform.SetParent(parent, false);
             text.font = font;
             text.fontSize = size;
+            text.fontStyle = FontStyle.Bold;
             text.alignment = anchor;
             text.color = color;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;

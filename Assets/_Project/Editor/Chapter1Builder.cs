@@ -107,7 +107,6 @@ namespace Frustration.EditorTools
             var room = new GameObject("Kid Room").transform;
             var wood = Mat("Wood", new Color(0.45f, 0.3f, 0.2f), woodTex);
             var blanket = Mat("Blanket", new Color(0.35f, 0.25f, 0.45f), plasterTex);
-            var backpackMat = Mat("Backpack", new Color(0.7f, 0.12f, 0.1f), plasterTex);
 
             var bed = Box("Bed", room, new Vector3(0.5f, 0.25f, 4.95f), new Vector3(0.9f, 0.5f, 1.9f), blanket);
             Box("Pillow", room, new Vector3(0.5f, 0.55f, 5.6f), new Vector3(0.6f, 0.12f, 0.4f), Mat("Pillow", new Color(0.8f, 0.8f, 0.75f), plasterTex));
@@ -117,8 +116,8 @@ namespace Frustration.EditorTools
             Box("Chair", room, new Vector3(2.6f, 0.225f, 5.0f), new Vector3(0.4f, 0.45f, 0.4f), wood);
             Box("Wardrobe", room, new Vector3(3.0f, 1.0f, 3.4f), new Vector3(0.8f, 2.0f, 0.6f), wood);
 
-            var backpack = Box("Backpack", room, new Vector3(2.6f, 0.63f, 5.0f), new Vector3(0.32f, 0.36f, 0.2f), backpackMat);
-            var pickup = Interact(backpack, "Взять рюкзак", "Новый рюкзак. Мама купила его на рынке.", "Он пахнет клеем.");
+            var backpack = Satchel(room, new Vector3(2.6f, 0.45f, 5.0f), Quaternion.Euler(0f, -90f, 0f));
+            var pickup = Interact(backpack, "Взять ранец", "Новый ранец. Мама купила его на рынке.", "Он пахнет клеем.");
             pickup.setsFlag = "backpack";
             pickup.hideAfterUse = true;
 
@@ -137,7 +136,6 @@ namespace Frustration.EditorTools
             var wood = Mat("Wood", new Color(0.45f, 0.3f, 0.2f), woodTex);
             var cloth = Mat("Father Clothes", new Color(0.18f, 0.2f, 0.17f), plasterTex);
             var skin = Mat("Skin", new Color(0.6f, 0.45f, 0.38f), plasterTex);
-            var glass = Mat("Bottle", new Color(0.15f, 0.3f, 0.15f), plasterTex);
             var white = Mat("Appliance", new Color(0.75f, 0.75f, 0.7f), plasterTex);
 
             Box("Table", room, new Vector3(5.8f, 0.375f, 4.8f), new Vector3(1.0f, 0.75f, 0.8f), wood);
@@ -157,11 +155,10 @@ namespace Frustration.EditorTools
 
             var bottles = new GameObject("Bottles").transform;
             bottles.SetParent(room, false);
-            Primitive(PrimitiveType.Cylinder, "Bottle", bottles, new Vector3(5.55f, 0.87f, 4.6f), new Vector3(0.07f, 0.12f, 0.07f), glass);
-            Primitive(PrimitiveType.Cylinder, "Bottle", bottles, new Vector3(5.7f, 0.87f, 5.0f), new Vector3(0.07f, 0.12f, 0.07f), glass);
-            Primitive(PrimitiveType.Cylinder, "Bottle", bottles, new Vector3(5.45f, 0.87f, 4.95f), new Vector3(0.07f, 0.12f, 0.07f), glass);
-            var fallen = Primitive(PrimitiveType.Cylinder, "Bottle Fallen", bottles, new Vector3(5.3f, 0.04f, 4.3f), new Vector3(0.07f, 0.12f, 0.07f), glass);
-            fallen.transform.rotation = Quaternion.Euler(90f, 30f, 0f);
+            Bottle(bottles, new Vector3(5.55f, 0.75f, 4.6f), Quaternion.identity, vodka: true);
+            Bottle(bottles, new Vector3(5.7f, 0.75f, 5.0f), Quaternion.identity, vodka: false);
+            Bottle(bottles, new Vector3(5.45f, 0.75f, 4.95f), Quaternion.identity, vodka: true);
+            Bottle(bottles, new Vector3(5.3f, 0.033f, 4.3f), Quaternion.Euler(0f, 30f, 90f), vodka: false);
             var bottlesInteract = bottles.gameObject.AddComponent<Interactable>();
             bottlesInteract.prompt = "Бутылки";
             bottlesInteract.lines = new[] { "Вчера их было меньше." };
@@ -211,7 +208,7 @@ namespace Frustration.EditorTools
             var door = Box("Front Door", hall, new Vector3(0.06f, 1.02f, 2.3f), new Vector3(0.06f, 2.05f, 0.9f), doorMat);
             var exit = door.AddComponent<ExitDoor>();
             exit.prompt = "Выйти в школу";
-            exit.lockedLines = new[] { "Без рюкзака в школу нельзя." };
+            exit.lockedLines = new[] { "Без ранца в школу нельзя." };
             exit.endTitle = "Глава 1. Первый класс";
             exit.endSubtitle = "Продолжение следует";
 
@@ -258,6 +255,76 @@ namespace Frustration.EditorTools
 
             var drone = new GameObject("Ambience Drone");
             AddSound(drone, ProceduralAmbience.Kind.Drone, 0.3f, false);
+        }
+
+        // ---------- Предметы из нескольких частей ----------
+
+        // Советский школьный ранец: корпус, клапан с двумя застёжками, светоотражатель, ручка, лямки сзади.
+        // Перед ранца смотрит вдоль его локальной оси +Z.
+        static GameObject Satchel(Transform parent, Vector3 position, Quaternion rotation)
+        {
+            var satchel = new GameObject("Satchel").transform;
+            satchel.SetParent(parent, false);
+            satchel.SetPositionAndRotation(position, rotation);
+
+            var red = Mat("Satchel", new Color(0.62f, 0.1f, 0.08f), plasterTex);
+            var darkRed = Mat("Satchel Flap", new Color(0.42f, 0.06f, 0.05f), plasterTex);
+            var metal = Mat("Metal", new Color(0.7f, 0.7f, 0.65f), plasterTex);
+            var black = Mat("Strap", new Color(0.08f, 0.08f, 0.08f), plasterTex);
+            var reflector = Mat("Reflector", new Color(0.9f, 0.75f, 0.1f), plasterTex, 1f, new Color(0.12f, 0.1f, 0.02f));
+
+            LocalBox("Body", satchel, new Vector3(0f, 0.16f, 0f), new Vector3(0.30f, 0.32f, 0.12f), red);
+            LocalBox("Lid", satchel, new Vector3(0f, 0.325f, 0f), new Vector3(0.31f, 0.015f, 0.13f), darkRed);
+            LocalBox("Flap", satchel, new Vector3(0f, 0.25f, 0.066f), new Vector3(0.31f, 0.16f, 0.015f), darkRed);
+            LocalBox("Buckle L", satchel, new Vector3(-0.08f, 0.175f, 0.076f), new Vector3(0.035f, 0.03f, 0.008f), metal);
+            LocalBox("Buckle R", satchel, new Vector3(0.08f, 0.175f, 0.076f), new Vector3(0.035f, 0.03f, 0.008f), metal);
+            LocalBox("Reflector", satchel, new Vector3(0f, 0.27f, 0.076f), new Vector3(0.06f, 0.06f, 0.006f), reflector);
+            LocalBox("Handle", satchel, new Vector3(0f, 0.345f, 0f), new Vector3(0.1f, 0.02f, 0.025f), black);
+            LocalBox("Strap L", satchel, new Vector3(-0.08f, 0.16f, -0.066f), new Vector3(0.035f, 0.3f, 0.012f), black);
+            LocalBox("Strap R", satchel, new Vector3(0.08f, 0.16f, -0.066f), new Vector3(0.035f, 0.3f, 0.012f), black);
+            return satchel.gameObject;
+        }
+
+        // Бутылка: корпус, плечики, горлышко, крышка и этикетка. Водочная прозрачная, пивная коричневая.
+        // Точка position — центр донышка.
+        static GameObject Bottle(Transform parent, Vector3 position, Quaternion rotation, bool vodka)
+        {
+            var bottle = new GameObject(vodka ? "Vodka Bottle" : "Beer Bottle").transform;
+            bottle.SetParent(parent, false);
+            bottle.SetPositionAndRotation(position, rotation);
+
+            var glass = vodka ? Mat("Glass Clear", new Color(0.55f, 0.62f, 0.6f), plasterTex)
+                              : Mat("Glass Brown", new Color(0.28f, 0.13f, 0.04f), plasterTex);
+            var label = vodka ? Mat("Label Vodka", new Color(0.85f, 0.82f, 0.75f), plasterTex)
+                              : Mat("Label Beer", new Color(0.8f, 0.62f, 0.15f), plasterTex);
+            var cap = vodka ? Mat("Cap Silver", new Color(0.65f, 0.65f, 0.62f), plasterTex)
+                            : Mat("Cap Gold", new Color(0.7f, 0.55f, 0.2f), plasterTex);
+
+            float r = vodka ? 0.075f : 0.065f;      // диаметр корпуса
+            float h = vodka ? 0.16f : 0.14f;        // высота корпуса
+            LocalPrimitive(PrimitiveType.Cylinder, "Body", bottle, new Vector3(0f, h / 2f, 0f), new Vector3(r, h / 2f, r), glass);
+            LocalPrimitive(PrimitiveType.Cylinder, "Label", bottle, new Vector3(0f, h * 0.45f, 0f), new Vector3(r + 0.004f, h * 0.22f, r + 0.004f), label);
+            LocalPrimitive(PrimitiveType.Sphere, "Shoulder", bottle, new Vector3(0f, h, 0f), new Vector3(r, 0.045f, r), glass);
+            LocalPrimitive(PrimitiveType.Cylinder, "Neck", bottle, new Vector3(0f, h + 0.05f, 0f), new Vector3(0.028f, 0.045f, 0.028f), glass);
+            LocalPrimitive(PrimitiveType.Cylinder, "Cap", bottle, new Vector3(0f, h + 0.1f, 0f), new Vector3(0.032f, 0.01f, 0.032f), cap);
+            return bottle.gameObject;
+        }
+
+        static GameObject LocalBox(string name, Transform parent, Vector3 localPosition, Vector3 size, Material material)
+            => LocalPrimitive(PrimitiveType.Cube, name, parent, localPosition, size, material);
+
+        static GameObject LocalPrimitive(PrimitiveType type, string name, Transform parent, Vector3 localPosition, Vector3 scale, Material material)
+        {
+            var go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPosition;
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = scale;
+            var renderer = go.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            return go;
         }
 
         // ---------- Помощники ----------
