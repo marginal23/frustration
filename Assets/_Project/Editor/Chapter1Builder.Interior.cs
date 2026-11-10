@@ -36,7 +36,8 @@ namespace Frustration.EditorTools
             var tiles = Mat("Tiles", Color.white, MakeColorTexture("Tiles", 32, 32, TilePixel));
             var paint = Mat("Kitchen Paint", new Color(0.78f, 0.72f, 0.5f), plasterTex);
             var carpet = Mat("Carpet", Color.white, MakeColorTexture("Carpet", 64, 48, CarpetPixel));
-            var oilcloth = Mat("Oilcloth", Color.white, MakeColorTexture("Oilcloth", 16, 16, OilclothPixel));
+            carpet.SetFloat("_OffsetFactor", -1f);
+            carpet.SetFloat("_OffsetUnits", -4f);
             var curtain = Mat("Curtain", Color.white, MakeColorTexture("Curtain", 16, 32, CurtainPixel));
             var wood = Mat("Wood", new Color(0.45f, 0.3f, 0.2f), woodTex);
             var white = Mat("Appliance", new Color(0.75f, 0.75f, 0.7f), plasterTex);
@@ -71,10 +72,8 @@ namespace Frustration.EditorTools
 
             // --- Детская ---
             // Ковёр на стене над кроватью: классика советской квартиры.
-            AddQuad("Wall Carpet", kid, false, 0.05f + 0.008f, +1, 4.05f, 5.85f, 0.7f, 1.95f, carpet, 1.8f, 1.25f, 4.05f, 0.7f);
-            Box("Floor Rug", kid, new Vector3(1.75f, 0.006f, 4.4f), new Vector3(1.3f, 0.012f, 0.95f), carpet);
-            Primitive(PrimitiveType.Cylinder, "Lampshade", kid, new Vector3(1.75f, 2.47f, 4.5f), new Vector3(0.38f, 0.07f, 0.38f), Mat("Lampshade", new Color(0.85f, 0.75f, 0.5f), plasterTex));
-            Box("Lamp Cord", kid, new Vector3(1.75f, 2.56f, 4.5f), new Vector3(0.015f, 0.1f, 0.015f), black);
+            AddQuad("Wall Carpet", kid, false, 0.05f + 0.008f, +1, 4.05f, 5.85f, 0.7f, 1.95f, carpet, 1.8f, 1.25f, 4.05f, 0.7f, true);
+            FlatQuad("Floor Rug", kid, 1.1f, 2.4f, 3.925f, 4.875f, 0.006f, carpet, 1.3f, 0.95f);
             Box("Bookshelf", kid, new Vector3(3.33f, 1.45f, 4.4f), new Vector3(0.24f, 0.03f, 0.9f), wood);
             Color[] bookColors = { new Color(0.5f, 0.1f, 0.1f), new Color(0.1f, 0.25f, 0.45f), new Color(0.2f, 0.4f, 0.2f), new Color(0.6f, 0.5f, 0.2f), new Color(0.35f, 0.2f, 0.4f) };
             for (int i = 0; i < 9; i++)
@@ -85,16 +84,7 @@ namespace Frustration.EditorTools
             Curtains(kid, 1.6f, curtain);
 
             // --- Кухня ---
-            Box("Oilcloth", kitchen, new Vector3(5.8f, 0.757f, 4.8f), new Vector3(1.06f, 0.012f, 0.86f), oilcloth);
-            var stove = Box("Stove", kitchen, new Vector3(6.68f, 0.43f, 3.62f), new Vector3(0.55f, 0.86f, 0.55f), white);
-            Interact(stove, "Плита", "Чайник холодный. Никто не завтракал.");
-            Box("Stove Top", kitchen, new Vector3(6.68f, 0.865f, 3.62f), new Vector3(0.55f, 0.01f, 0.55f), black);
-            Box("Oven Door", kitchen, new Vector3(6.4f, 0.36f, 3.62f), new Vector3(0.01f, 0.4f, 0.45f), Mat("Oven Door", new Color(0.3f, 0.3f, 0.3f), plasterTex));
-            for (int i = 0; i < 4; i++)
-            {
-                var pos = new Vector3(6.55f + (i % 2) * 0.25f, 0.875f, 3.5f + (i / 2) * 0.25f);
-                Primitive(PrimitiveType.Cylinder, "Burner", kitchen, pos, new Vector3(0.11f, 0.008f, 0.11f), Mat("Burner", new Color(0.15f, 0.15f, 0.15f), plasterTex));
-            }
+            // Плита, стол и стулья теперь строятся в Chapter1Builder.Furniture.cs.
             Curtains(kitchen, 5.5f, curtain);
 
             // Настенные часы: тикают.
@@ -161,12 +151,29 @@ namespace Frustration.EditorTools
             var skin = Mat("Skin", new Color(0.6f, 0.45f, 0.38f), plasterTex);
             var hair = Mat("Hair", new Color(0.22f, 0.15f, 0.08f), plasterTex);
             var shirt = Mat("Shirt", new Color(0.85f, 0.85f, 0.82f), plasterTex);
-            LocalPrimitive(PrimitiveType.Capsule, "Body", reflection, new Vector3(0f, 0.62f, 0f), new Vector3(0.34f, 0.38f, 0.24f), uniform);
-            LocalBox("Collar", reflection, new Vector3(0f, 0.97f, 0.06f), new Vector3(0.14f, 0.06f, 0.08f), shirt);
-            LocalPrimitive(PrimitiveType.Sphere, "Head", reflection, new Vector3(0f, 1.12f, 0f), Vector3.one * 0.22f, skin);
-            LocalPrimitive(PrimitiveType.Sphere, "Hair", reflection, new Vector3(0f, 1.18f, -0.02f), new Vector3(0.235f, 0.15f, 0.235f), hair);
+            var shoes = Mat("Boy Shoes", new Color(0.06f, 0.06f, 0.06f), plasterTex);
+            var eyes = Mat("Strap", new Color(0.08f, 0.08f, 0.08f), plasterTex);
+            foreach (int s in new[] { -1, 1 })
+            {
+                LocalPrimitive(PrimitiveType.Sphere, "Shoe", reflection, new Vector3(s * 0.07f, 0.035f, 0.03f), new Vector3(0.09f, 0.07f, 0.2f), shoes);
+                LocalPrimitive(PrimitiveType.Capsule, "Leg", reflection, new Vector3(s * 0.07f, 0.3f, 0f), new Vector3(0.1f, 0.24f, 0.11f), uniform);
+                var arm = LocalPrimitive(PrimitiveType.Capsule, "Arm", reflection, new Vector3(s * 0.19f, 0.73f, 0f), new Vector3(0.08f, 0.19f, 0.08f), uniform);
+                arm.transform.localRotation = Quaternion.Euler(0f, 0f, s * 6f);
+                LocalPrimitive(PrimitiveType.Sphere, "Cuff", reflection, new Vector3(s * 0.205f, 0.555f, 0f), Vector3.one * 0.065f, shirt);
+                LocalPrimitive(PrimitiveType.Sphere, "Hand", reflection, new Vector3(s * 0.21f, 0.5f, 0.01f), Vector3.one * 0.06f, skin);
+                LocalPrimitive(PrimitiveType.Sphere, "Ear", reflection, new Vector3(s * 0.1f, 1.13f, 0f), new Vector3(0.03f, 0.05f, 0.04f), skin);
+                LocalPrimitive(PrimitiveType.Sphere, "Eye", reflection, new Vector3(s * 0.04f, 1.14f, 0.093f), Vector3.one * 0.022f, eyes);
+            }
+            LocalPrimitive(PrimitiveType.Capsule, "Jacket", reflection, new Vector3(0f, 0.76f, 0f), new Vector3(0.3f, 0.25f, 0.19f), uniform);
+            LocalBox("Shirt Front", reflection, new Vector3(0f, 0.88f, 0.085f), new Vector3(0.08f, 0.16f, 0.02f), shirt);
+            LocalBox("Collar", reflection, new Vector3(0f, 0.98f, 0.05f), new Vector3(0.14f, 0.04f, 0.07f), shirt);
+            LocalBox("Bow Tie", reflection, new Vector3(0f, 0.955f, 0.095f), new Vector3(0.07f, 0.025f, 0.01f), eyes);
+            LocalPrimitive(PrimitiveType.Cylinder, "Neck", reflection, new Vector3(0f, 1.02f, 0f), new Vector3(0.07f, 0.03f, 0.07f), skin);
+            LocalPrimitive(PrimitiveType.Sphere, "Head", reflection, new Vector3(0f, 1.13f, 0f), new Vector3(0.19f, 0.22f, 0.2f), skin);
+            LocalPrimitive(PrimitiveType.Sphere, "Hair", reflection, new Vector3(0f, 1.18f, -0.015f), new Vector3(0.205f, 0.15f, 0.21f), hair);
+            LocalBox("Fringe", reflection, new Vector3(0f, 1.205f, 0.08f), new Vector3(0.15f, 0.035f, 0.03f), hair);
             var satchel = Satchel(reflection, Vector3.zero, Quaternion.identity).transform;
-            satchel.localPosition = new Vector3(0f, 0.45f, -0.17f);
+            satchel.localPosition = new Vector3(0f, 0.58f, -0.13f);
             satchel.localRotation = Quaternion.Euler(0f, 180f, 0f);
             foreach (var c in reflection.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
 
@@ -194,6 +201,12 @@ namespace Frustration.EditorTools
                 // копия которых вылезла бы в настоящую комнату.
                 if (o.name.StartsWith("Mirror") || o.name.Contains("(no mirror)")) { toDelete.Add(c.gameObject); continue; }
 
+                // Створки дверей в отражении поворачиваются вместе с настоящими.
+                if (o.name.StartsWith("Door Pivot")) c.gameObject.AddComponent<TransformSync>().source = o;
+                // Лампочки и плафоны в отражении гаснут и загораются вместе с настоящими.
+                if (o.name.StartsWith("Lamp Glow") && o.GetComponent<Renderer>() != null)
+                    c.gameObject.AddComponent<RendererSync>().source = o.GetComponent<Renderer>();
+
                 var interactable = o.GetComponent<Interactable>();
                 if (interactable != null && interactable.hideAfterUse)
                     c.gameObject.AddComponent<ActiveSync>().source = o.gameObject;
@@ -207,6 +220,9 @@ namespace Frustration.EditorTools
                 }
 
                 foreach (var ambience in c.GetComponents<ProceduralAmbience>()) Object.DestroyImmediate(ambience);
+                foreach (var filter in c.GetComponents<AudioHighPassFilter>()) Object.DestroyImmediate(filter);
+                foreach (var filter in c.GetComponents<AudioLowPassFilter>()) Object.DestroyImmediate(filter);
+                foreach (var filter in c.GetComponents<AudioDistortionFilter>()) Object.DestroyImmediate(filter);
                 foreach (var audio in c.GetComponents<AudioSource>()) Object.DestroyImmediate(audio);
                 foreach (var it in c.GetComponents<Interactable>()) Object.DestroyImmediate(it);
                 foreach (var col in c.GetComponents<Collider>()) Object.DestroyImmediate(col);
@@ -267,29 +283,60 @@ namespace Frustration.EditorTools
         }
 
         // Плоский прямоугольник с UV в метрах (текстура повторяется каждые repeatU/repeatV метров).
+        // subdivide: нарезать на клетки по ~25 см, чтобы текстура не «плыла» (для ковров).
+        // Обои не режем: на стыках соседних кусков от дрожания вершин появляются щели.
         static GameObject AddQuad(string name, Transform parent, bool alongX, float plane, int side,
                                   float u0, float u1, float y0, float y1, Material material,
-                                  float repeatU, float repeatV, float uOrigin, float vOrigin)
+                                  float repeatU, float repeatV, float uOrigin, float vOrigin, bool subdivide = false)
         {
             Vector3 P(float u, float y) => alongX ? new Vector3(u, y, plane) : new Vector3(plane, y, u);
-            var vertices = new[] { P(u0, y0), P(u1, y0), P(u1, y1), P(u0, y1) };
             var normal = alongX ? new Vector3(0f, 0f, side) : new Vector3(side, 0f, 0f);
-            var uvs = new[]
+            return GridMesh(name, parent, u0, u1, y0, y1, P, normal, material,
+                (u, v) => new Vector2((u - uOrigin) / repeatU, (v - vOrigin) / repeatV), subdivide ? 0.25f : 100f);
+        }
+
+        // Горизонтальная плоскость (пол, ковёр), смотрит вверх. Тоже нарезана на клетки.
+        static GameObject FlatQuad(string name, Transform parent, float x0, float x1, float z0, float z1, float y,
+                                   Material material, float repeatX, float repeatZ)
+        {
+            return GridMesh(name, parent, x0, x1, z0, z1, (u, v) => new Vector3(u, y, v), Vector3.up, material,
+                (u, v) => new Vector2((u - x0) / repeatX, (v - z0) / repeatZ), 0.25f);
+        }
+
+        static GameObject GridMesh(string name, Transform parent, float u0, float u1, float v0, float v1,
+                                   System.Func<float, float, Vector3> point, Vector3 normal, Material material,
+                                   System.Func<float, float, Vector2> uv, float cell)
+        {
+            int nu = Mathf.Max(1, Mathf.CeilToInt((u1 - u0) / cell));
+            int nv = Mathf.Max(1, Mathf.CeilToInt((v1 - v0) / cell));
+            var vertices = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var normals = new List<Vector3>();
+            for (int j = 0; j <= nv; j++)
+            for (int i = 0; i <= nu; i++)
             {
-                new Vector2((u0 - uOrigin) / repeatU, (y0 - vOrigin) / repeatV),
-                new Vector2((u1 - uOrigin) / repeatU, (y0 - vOrigin) / repeatV),
-                new Vector2((u1 - uOrigin) / repeatU, (y1 - vOrigin) / repeatV),
-                new Vector2((u0 - uOrigin) / repeatU, (y1 - vOrigin) / repeatV),
-            };
-            // Лицевая сторона треугольника должна смотреть в комнату.
-            bool facesNormal = Vector3.Dot(Vector3.Cross(vertices[1] - vertices[0], vertices[2] - vertices[0]), normal) > 0f;
-            var triangles = facesNormal ? new[] { 0, 1, 2, 0, 2, 3 } : new[] { 0, 2, 1, 0, 3, 2 };
+                float u = Mathf.Lerp(u0, u1, (float)i / nu), v = Mathf.Lerp(v0, v1, (float)j / nv);
+                vertices.Add(point(u, v));
+                uvs.Add(uv(u, v));
+                normals.Add(normal);
+            }
+
+            // Лицевая сторона треугольников должна смотреть туда же, куда нормаль.
+            bool facesNormal = Vector3.Dot(Vector3.Cross(vertices[1] - vertices[0], vertices[nu + 2] - vertices[0]), normal) > 0f;
+            var triangles = new List<int>();
+            for (int j = 0; j < nv; j++)
+            for (int i = 0; i < nu; i++)
+            {
+                int a = j * (nu + 1) + i, b = a + 1, c = a + nu + 2, d = a + nu + 1;
+                if (facesNormal) triangles.AddRange(new[] { a, b, c, a, c, d });
+                else triangles.AddRange(new[] { a, c, b, a, d, c });
+            }
 
             var mesh = new Mesh { name = name };
-            mesh.vertices = vertices;
-            mesh.uv = uvs;
-            mesh.normals = new[] { normal, normal, normal, normal };
-            mesh.triangles = triangles;
+            mesh.SetVertices(vertices);
+            mesh.SetUVs(0, uvs);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
 
             var go = new GameObject(name);
@@ -359,33 +406,49 @@ namespace Frustration.EditorTools
         }
 
         // Красный ковёр: синяя кайма, бежевая полоса, ромб-медальон в центре.
+        // Советский ковёр «под персидский»: бордовое поле с мелким узором, большой медальон в центре,
+        // четверти медальона по углам, широкая тёмно-синяя кайма с бежевыми ромбиками.
         static Color CarpetPixel(int x, int y, float r)
         {
             const int w = 64, h = 48;
-            var red = new Color(0.5f, 0.08f, 0.06f);
-            var darkRed = new Color(0.32f, 0.04f, 0.04f);
-            var blue = new Color(0.1f, 0.12f, 0.3f);
-            var beige = new Color(0.82f, 0.7f, 0.5f);
+            var field = new Color(0.42f, 0.07f, 0.07f);
+            var navy = new Color(0.1f, 0.11f, 0.25f);
+            var beige = new Color(0.8f, 0.68f, 0.5f);
+            var red = new Color(0.62f, 0.12f, 0.08f);
+            var green = new Color(0.22f, 0.32f, 0.22f);
             int edge = Mathf.Min(Mathf.Min(x, w - 1 - x), Mathf.Min(y, h - 1 - y));
             Color c;
-            if (edge < 4) c = blue;
-            else if (edge == 5) c = beige;
+            if (edge < 1) c = new Color(0.75f, 0.68f, 0.55f);                       // бахрома
+            else if (edge < 6)
+            {
+                bool motif = (edge == 3) && ((x + y) % 4 == 0) || (edge == 2 || edge == 4) && ((x + y) % 4 == 2);
+                c = motif ? beige : navy;
+            }
+            else if (edge == 6) c = beige;
+            else if (edge == 7) c = red;
             else
             {
-                float dx = Mathf.Abs(x - (w - 1) / 2f) / (w / 2f);
-                float dy = Mathf.Abs(y - (h - 1) / 2f) / (h / 2f);
-                float d = dx + dy;
-                if (d < 0.75f)
+                float u = (x - w / 2f + 0.5f) / (w / 2f - 8f), v = (y - h / 2f + 0.5f) / (h / 2f - 8f);
+                float d = Mathf.Abs(u) * 1.0f + Mathf.Abs(v) * 1.25f;
+                float dc = (1f - Mathf.Abs(u)) * 1.3f + (1f - Mathf.Abs(v)) * 1.6f;
+                if (d < 0.1f) c = beige;
+                else if (d < 0.2f) c = red;
+                else if (d < 0.3f) c = navy;
+                else if (d < 0.36f) c = beige;
+                else if (d < 0.42f) c = navy;
+                else if (dc < 0.22f) c = navy;
+                else if (dc < 0.28f) c = beige;
+                else
                 {
-                    int ring = Mathf.FloorToInt(d * 12f);
-                    c = ring % 3 == 0 ? beige : (ring % 3 == 1 ? darkRed : blue);
+                    int mx = x % 6, my = y % 6;
+                    if (mx == 3 && my == 3) c = beige;
+                    else if ((mx == 3 && (my == 2 || my == 4)) || (my == 3 && (mx == 2 || mx == 4))) c = green;
+                    else c = field;
                 }
-                else c = ((x / 4 + y / 4) % 2 == 0) ? red : darkRed;
             }
-            return Noise(c, r, 0.06f);
+            return Noise(c, r, 0.08f);
         }
 
-        // Клеёнка в красно-белую клетку.
         static Color OilclothPixel(int x, int y, float r)
         {
             bool a = (x / 4) % 2 == 0, b = (y / 4) % 2 == 0;

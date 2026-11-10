@@ -29,7 +29,7 @@ namespace Frustration.EditorTools
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 60f;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.3f, 0.33f, 0.38f);
+            cam.backgroundColor = new Color(0.42f, 0.45f, 0.5f);
 
             const int width = 320, height = 240, scale = 3;
             var rt = new RenderTexture(width, height, 24) { filterMode = FilterMode.Point };

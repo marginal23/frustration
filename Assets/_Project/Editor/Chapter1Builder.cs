@@ -45,6 +45,7 @@ namespace Frustration.EditorTools
             BuildLivingRoom();
             BuildInterior();
             BuildDetails();
+            BuildFurniture();
             BuildOutside();
             var player = BuildPlayerAndSystems();
             BuildMirror(player);
@@ -85,7 +86,10 @@ namespace Frustration.EditorTools
             var floor = Mat("Floor", new Color(0.45f, 0.3f, 0.22f), floorTex, 6f);
             var ceiling = Mat("Ceiling", new Color(0.6f, 0.6f, 0.58f), plasterTex);
 
-            Box("Floor", parent, new Vector3(3.5f, -0.05f, 3.8f), new Vector3(7f, 0.1f, 4.4f), floor);
+            // Пол: коробка только для столкновений, видимая часть — нарезанная плоскость (меньше «плывёт»).
+            var floorBox = Box("Floor", parent, new Vector3(3.5f, -0.05f, 3.8f), new Vector3(7f, 0.1f, 4.4f), floor);
+            Object.DestroyImmediate(floorBox.GetComponent<MeshRenderer>());
+            FlatQuad("Floor Surface", parent, 0f, 7f, 1.6f, 6f, 0f, floor, 7f, 7f);
             Box("Ceiling", parent, new Vector3(3.5f, WallHeight + 0.05f, 3.8f), new Vector3(7f, 0.1f, 4.4f), ceiling);
 
             // Наружные стены.
@@ -123,15 +127,9 @@ namespace Frustration.EditorTools
             var wood = Mat("Wood", new Color(0.45f, 0.3f, 0.2f), woodTex);
             var blanket = Mat("Blanket", new Color(0.35f, 0.25f, 0.45f), plasterTex);
 
-            var bed = Box("Bed", room, new Vector3(0.5f, 0.25f, 4.95f), new Vector3(0.9f, 0.5f, 1.9f), blanket);
-            Box("Pillow", room, new Vector3(0.5f, 0.55f, 5.6f), new Vector3(0.6f, 0.12f, 0.4f), Mat("Pillow", new Color(0.8f, 0.8f, 0.75f), plasterTex));
-            Interact(bed, "Кровать", "Ещё темно. А мама сказала, что сегодня праздник.");
-
-            Box("Desk", room, new Vector3(3.0f, 0.375f, 5.6f), new Vector3(0.8f, 0.75f, 0.6f), wood);
-            Box("Chair", room, new Vector3(2.6f, 0.225f, 5.0f), new Vector3(0.4f, 0.45f, 0.4f), wood);
-            Box("Wardrobe", room, new Vector3(3.0f, 1.0f, 3.4f), new Vector3(0.8f, 2.0f, 0.6f), wood);
-
-            var backpack = Satchel(room, new Vector3(2.6f, 0.45f, 5.0f), Quaternion.Euler(0f, -90f, 0f));
+            // Кровать — в Chapter1Builder.Furniture.cs.
+            // Стол, стул, шкаф, лампа и мелочи — в Chapter1Builder.Furniture.cs.
+            var backpack = Satchel(room, new Vector3(2.8f, 0.47f, 5.05f), Quaternion.Euler(0f, -90f, 0f));
             var pickup = Interact(backpack, "Взять ранец", "Новый ранец. Мама купила его на рынке.", "Он пахнет клеем.");
             pickup.setsFlag = "backpack";
             pickup.hideAfterUse = true;
@@ -141,6 +139,8 @@ namespace Frustration.EditorTools
 
             var light = PointLight("Window Glow", room, new Vector3(1.6f, 1.6f, 5.4f), new Color(0.5f, 0.6f, 0.85f), 0.8f, 4f);
             light.shadows = LightShadows.None;
+
+            // Абажур под потолком и выключатель — в Chapter1Builder.Furniture.cs.
         }
 
         // ---------- Кухня: отец ----------
@@ -153,49 +153,23 @@ namespace Frustration.EditorTools
             var skin = Mat("Skin", new Color(0.6f, 0.45f, 0.38f), plasterTex);
             var white = Mat("Appliance", new Color(0.75f, 0.75f, 0.7f), plasterTex);
 
-            Box("Table", room, new Vector3(5.8f, 0.375f, 4.8f), new Vector3(1.0f, 0.75f, 0.8f), wood);
-            Box("Chair Near", room, new Vector3(5.0f, 0.225f, 4.8f), new Vector3(0.4f, 0.45f, 0.4f), wood);
-            Box("Chair Father", room, new Vector3(6.6f, 0.225f, 4.8f), new Vector3(0.4f, 0.45f, 0.4f), wood);
+            // Стол, стулья, холодильник, плита и телевизор — в Chapter1Builder.Furniture.cs.
 
-            // Отец спит, уронив голову на стол.
-            var father = new GameObject("Father").transform;
-            father.SetParent(room, false);
-            var body = Primitive(PrimitiveType.Capsule, "Body", father, new Vector3(6.55f, 0.85f, 4.8f), new Vector3(0.45f, 0.42f, 0.32f), cloth);
-            body.transform.rotation = Quaternion.Euler(0f, 0f, 35f);
-            Primitive(PrimitiveType.Sphere, "Head", father, new Vector3(6.15f, 0.9f, 4.85f), Vector3.one * 0.24f, skin);
-            Box("Arm", father, new Vector3(6.05f, 0.8f, 4.62f), new Vector3(0.5f, 0.09f, 0.1f), cloth);
-            var fatherInteract = father.gameObject.AddComponent<Interactable>();
-            fatherInteract.prompt = "Папа";
-            fatherInteract.lines = new[] { "Папа спит за столом.", "Лучше его не будить." };
+            // Отец спит за столом — в Chapter1Builder.Furniture.cs.
 
             var bottles = new GameObject("Bottles").transform;
             bottles.SetParent(room, false);
             Bottle(bottles, new Vector3(5.55f, 0.75f, 4.6f), Quaternion.identity, vodka: true);
-            Bottle(bottles, new Vector3(5.7f, 0.75f, 5.0f), Quaternion.identity, vodka: false);
+            Bottle(bottles, new Vector3(5.7f, 0.75f, 5.0f), Quaternion.identity, vodka: true);
             Bottle(bottles, new Vector3(5.45f, 0.75f, 4.95f), Quaternion.identity, vodka: true);
-            Bottle(bottles, new Vector3(5.3f, 0.033f, 4.3f), Quaternion.Euler(0f, 30f, 90f), vodka: false);
+            Bottle(bottles, new Vector3(5.3f, 0.038f, 4.3f), Quaternion.Euler(0f, 30f, 90f), vodka: true);
             var bottlesInteract = bottles.gameObject.AddComponent<Interactable>();
             bottlesInteract.prompt = "Бутылки";
             bottlesInteract.lines = new[] { "Вчера их было меньше." };
 
-            var fridge = Box("Fridge", room, new Vector3(6.65f, 0.9f, 5.6f), new Vector3(0.6f, 1.8f, 0.6f), white);
-            AddSound(fridge, ProceduralAmbience.Kind.FridgeHum, 0.2f, true);
-
-            // Телевизор шипит, его синий свет мигает.
-            Box("TV Stand", room, new Vector3(4.15f, 0.35f, 5.6f), new Vector3(0.7f, 0.7f, 0.5f), wood);
-            var tv = Box("TV", room, new Vector3(4.15f, 0.92f, 5.6f), new Vector3(0.55f, 0.45f, 0.45f), Mat("TV Body", new Color(0.12f, 0.12f, 0.12f), plasterTex));
-            var screen = Primitive(PrimitiveType.Quad, "TV Screen", room, new Vector3(4.15f, 0.93f, 5.37f), new Vector3(0.45f, 0.34f, 1f), Mat("TV Screen", Color.black, plasterTex, 1f, new Color(0.35f, 0.4f, 0.5f)));
-            screen.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
-            Object.DestroyImmediate(screen.GetComponent<Collider>());
-            Interact(tv, "Телевизор", "Каналов нет. Только шипит.");
-            AddSound(tv, ProceduralAmbience.Kind.TvStatic, 0.12f, true);
-            var tvLight = PointLight("TV Light", room, new Vector3(4.15f, 0.95f, 5.0f), new Color(0.45f, 0.55f, 0.9f), 0.9f, 3f);
-            var tvFlicker = tvLight.gameObject.AddComponent<LightFlicker>();
-            tvFlicker.speed = 14f;
-            tvFlicker.amount = 0.5f;
-
             // Лампа над столом мигает и иногда почти гаснет.
-            Primitive(PrimitiveType.Sphere, "Bulb", room, new Vector3(5.8f, 2.35f, 4.8f), Vector3.one * 0.12f, Mat("Bulb", Color.black, plasterTex, 1f, new Color(1f, 0.8f, 0.5f)));
+            Primitive(PrimitiveType.Sphere, "Lamp Glow Kitchen", room, new Vector3(5.8f, 2.35f, 4.8f), Vector3.one * 0.12f, Mat("Bulb", Color.black, plasterTex, 1f, new Color(1f, 0.8f, 0.5f)));
+            Box("Lamp Cord", room, new Vector3(5.8f, 2.5f, 4.8f), new Vector3(0.015f, 0.2f, 0.015f), Mat("Strap", new Color(0.08f, 0.08f, 0.08f), plasterTex));
             var lamp = PointLight("Kitchen Lamp", room, new Vector3(5.8f, 2.2f, 4.8f), new Color(1f, 0.75f, 0.45f), 1.6f, 5f);
             lamp.gameObject.AddComponent<LightFlicker>().amount = 0.15f;
 
@@ -213,11 +187,11 @@ namespace Frustration.EditorTools
 
             // Первый обрывок прошлого отца.
             Box("Photo Frame", hall, new Vector3(3.0f, 1.5f, 2.93f), new Vector3(0.36f, 0.46f, 0.03f), wood);
-            var photo = Primitive(PrimitiveType.Quad, "Photo", hall, new Vector3(3.0f, 1.5f, 2.91f), new Vector3(0.28f, 0.38f, 1f), Mat("Photo", new Color(0.55f, 0.5f, 0.4f), plasterTex));
+            var photo = Primitive(PrimitiveType.Quad, "Photo", hall, new Vector3(3.0f, 1.5f, 2.91f), new Vector3(0.28f, 0.38f, 1f), Mat("Photo Uniform", Color.white, MakeColorTexture("Photo Uniform", 16, 22, UniformPhotoPixel)));
             photo.transform.rotation = Quaternion.identity;
             Interact(photo, "Фотография", "Папа в форме, совсем молодой.", "Здесь он улыбается.", "Я не помню, чтобы он так улыбался.");
 
-            Box("Shoe Rack", hall, new Vector3(0.4f, 0.2f, 1.85f), new Vector3(0.6f, 0.4f, 0.3f), wood);
+            Box("Phone Stand", hall, new Vector3(0.4f, 0.2f, 1.85f), new Vector3(0.6f, 0.4f, 0.3f), wood);
             Box("Coat", hall, new Vector3(0.9f, 1.4f, 1.72f), new Vector3(0.45f, 0.8f, 0.12f), Mat("Coat", new Color(0.2f, 0.22f, 0.2f), plasterTex));
 
             var door = Box("Front Door", hall, new Vector3(0.06f, 1.02f, 2.3f), new Vector3(0.06f, 2.05f, 0.9f), doorMat);
@@ -227,7 +201,10 @@ namespace Frustration.EditorTools
             exit.endTitle = "Глава 1. Первый класс";
             exit.endSubtitle = "Продолжение следует";
 
-            PointLight("Hall Bulb", hall, new Vector3(3.5f, 2.3f, 2.3f), new Color(1f, 0.85f, 0.6f), 0.5f, 3.5f);
+            PointLight("Hall Bulb", hall, new Vector3(3.5f, 2.3f, 2.3f), new Color(1f, 0.85f, 0.6f), 1.0f, 5f);
+            PointLight("Hall Entrance Light", hall, new Vector3(0.9f, 2.2f, 2.3f), new Color(1f, 0.85f, 0.6f), 0.45f, 3f);
+            // Плафон-«тарелка» под потолком коридора.
+            Deco(PrimitiveType.Sphere, "Lamp Glow Hall", hall, new Vector3(3.5f, 2.58f, 2.3f), new Vector3(0.32f, 0.08f, 0.32f), Mat("Plafond Lit", new Color(0.9f, 0.88f, 0.8f), plasterTex, 1f, new Color(0.45f, 0.4f, 0.3f)));
         }
 
         // ---------- Игрок, интерфейс, звук ----------
@@ -268,8 +245,7 @@ namespace Frustration.EditorTools
 
             new GameObject("Game UI").AddComponent<GameUI>();
 
-            var drone = new GameObject("Ambience Drone");
-            AddSound(drone, ProceduralAmbience.Kind.Drone, 0.3f, false);
+            // Общий гул убран: теперь в квартире звучит радио из зала.
             return player.transform;
         }
 
@@ -378,7 +354,7 @@ namespace Frustration.EditorTools
 
         // Утреннее небо: цвет фона камеры. Туман чёрный, поэтому дальние дома и трубы
         // превращаются в тёмные силуэты на сером небе.
-        static readonly Color SkyColor = new Color(0.3f, 0.33f, 0.38f);
+        static readonly Color SkyColor = new Color(0.42f, 0.45f, 0.5f);
 
         // Стена вдоль X с проёмами под окна (центры окон по X).
         static void WallXWithWindows(Transform parent, float z, float x1, float x2, float[] windows, Material m)

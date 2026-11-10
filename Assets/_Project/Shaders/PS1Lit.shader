@@ -15,6 +15,11 @@ Shader "Frustration/PS1 Lit"
         _Affine ("Affine Texture Warp", Range(0, 1)) = 1
         _Cutoff ("Alpha Cutoff (0 = off)", Range(0, 1)) = 0
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
+        _FogScale ("Fog Strength", Range(0, 2)) = 1
+        _ExtraLight ("Extra Light (sky)", Color) = (0, 0, 0, 1)
+        // Сдвиг глубины: у ковров и наклеек отрицательный, чтобы они не мерцали на полу и стенах.
+        _OffsetFactor ("Depth Offset Factor", Float) = 0
+        _OffsetUnits ("Depth Offset Units", Float) = 0
     }
 
     SubShader
@@ -26,6 +31,7 @@ Shader "Frustration/PS1 Lit"
             Name "ForwardLit"
             Tags { "LightMode" = "UniversalForward" }
             Cull [_Cull]
+            Offset [_OffsetFactor], [_OffsetUnits]
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -46,6 +52,8 @@ Shader "Frustration/PS1 Lit"
                 float _SnapScale;
                 float _Affine;
                 float _Cutoff;
+                float _FogScale;
+                half4 _ExtraLight;
             CBUFFER_END
 
             // Плоскость зеркала (нормаль xyz, смещение w), задаётся скриптом MirrorWorld.
@@ -110,9 +118,10 @@ Shader "Frustration/PS1 Lit"
                 }
                 #endif
 
-                lighting += SampleSH(normalWS);
+                lighting += SampleSH(normalWS) + _ExtraLight.rgb;
                 output.lighting = lighting;
-                output.fogFactor = ComputeFogFactor(positionCS.z);
+                // _FogScale < 1 — туман слабее (двор за окнами), > 1 — гуще.
+                output.fogFactor = ComputeFogFactor(positionCS.z) * _FogScale;
                 return output;
             }
 
@@ -135,6 +144,7 @@ Shader "Frustration/PS1 Lit"
             Tags { "LightMode" = "DepthOnly" }
             ZWrite On
             Cull [_Cull]
+            Offset [_OffsetFactor], [_OffsetUnits]
             ColorMask R
 
             HLSLPROGRAM
@@ -149,6 +159,8 @@ Shader "Frustration/PS1 Lit"
                 float _SnapScale;
                 float _Affine;
                 float _Cutoff;
+                float _FogScale;
+                half4 _ExtraLight;
             CBUFFER_END
 
             TEXTURE2D(_BaseMap);

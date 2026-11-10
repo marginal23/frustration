@@ -8,13 +8,18 @@ namespace Frustration.EditorTools
     static class ChapterBuilderAutoUpdate
     {
         // Увеличивай это число каждый раз, когда меняется Chapter1Builder.
-        const int SceneVersion = 6;
+        const int SceneVersion = 9;
         const string PrefKey = "Frustration.Chapter1.SceneVersion";
 
         static ChapterBuilderAutoUpdate()
         {
             if (UnityEngine.Application.isBatchMode) return;
             EditorApplication.delayCall += Check;
+            // Если код обновился, пока шла игра (Play), спросим сразу после выхода из неё.
+            EditorApplication.playModeStateChanged += state =>
+            {
+                if (state == PlayModeStateChange.EnteredEditMode) EditorApplication.delayCall += Check;
+            };
         }
 
         static void Check()
@@ -24,7 +29,7 @@ namespace Frustration.EditorTools
 
             bool rebuild = EditorUtility.DisplayDialog(
                 "Frustration: сцена обновилась",
-                "В сборщике сцены пролога есть изменения (настоящие окна и двор с деревьями, новые гладиолусы).\n\n" +
+                "В сборщике сцены пролога есть изменения (радио с музыкой, фотографии, новый ковёр, мальчик в зеркале, телевизор у стола, сервиз и медаль).\n\n" +
                 "Пересобрать сцену Chapter1_Morning сейчас? Ручные правки в этой сцене пропадут.",
                 "Пересобрать", "Не сейчас");
 

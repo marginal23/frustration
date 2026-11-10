@@ -40,9 +40,48 @@ namespace Frustration.EditorTools
             // Деревья во дворе.
             PlaceTrees(outside);
 
+            // Снаружи туман слабее, а «небо» подсвечивает всё мягким светом: иначе двор почти чёрный.
+            foreach (var m in new[] { ground, asphalt, panel, chimney }) MakeOutdoor(m);
+            foreach (var r in outside.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = OutdoorCopy(mats[i]);
+                r.sharedMaterials = mats;
+            }
+
             // Снаружи ничего не нужно трогать: убираем коллайдеры, кроме земли.
             foreach (var c in outside.GetComponentsInChildren<Collider>(true))
                 if (c.gameObject.name != "Ground") Object.DestroyImmediate(c);
+        }
+
+        static readonly Color OutdoorLight = new Color(0.26f, 0.28f, 0.32f);
+        const float OutdoorFog = 0.35f;
+
+        static void MakeOutdoor(Material m)
+        {
+            m.SetFloat("_FogScale", OutdoorFog);
+            m.SetColor("_ExtraLight", OutdoorLight);
+            EditorUtility.SetDirty(m);
+        }
+
+        // Материалы деревьев принадлежат паку; делаем их уличные копии рядом с ним (тоже вне git).
+        static Material OutdoorCopy(Material m)
+        {
+            if (m == null) return null;
+            string path = AssetDatabase.GetAssetPath(m);
+            if (!path.StartsWith(TreePackFolder) && !path.EndsWith(".fbx")) return m;
+            string folder = TreePackFolder + "/Outdoor";
+            if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder(TreePackFolder, "Outdoor");
+            string copyPath = $"{folder}/{m.name}.mat";
+            var copy = AssetDatabase.LoadAssetAtPath<Material>(copyPath);
+            if (copy == null)
+            {
+                copy = new Material(m);
+                AssetDatabase.CreateAsset(copy, copyPath);
+            }
+            copy.CopyPropertiesFromMaterial(m);
+            MakeOutdoor(copy);
+            return copy;
         }
 
         static void PlaceTrees(Transform outside)

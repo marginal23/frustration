@@ -127,6 +127,14 @@ namespace Frustration
             promptText = MakeText(canvasGo.transform, font, 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.42f), new Color(0.85f, 0.85f, 0.8f, 0.9f));
             subtitleText = MakeText(canvasGo.transform, font, 30, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.12f), new Color(0.95f, 0.93f, 0.85f));
 
+            // Точка посередине экрана: помогает понять, на что смотришь.
+            var crosshair = new GameObject("Crosshair").AddComponent<Image>();
+            crosshair.transform.SetParent(canvasGo.transform, false);
+            crosshair.rectTransform.anchorMin = crosshair.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            crosshair.rectTransform.sizeDelta = new Vector2(5f, 5f);
+            crosshair.color = new Color(0.9f, 0.88f, 0.8f, 0.7f);
+            crosshair.raycastTarget = false;
+
             fade = new GameObject("Fade").AddComponent<Image>();
             fade.transform.SetParent(canvasGo.transform, false);
             Stretch(fade.rectTransform);

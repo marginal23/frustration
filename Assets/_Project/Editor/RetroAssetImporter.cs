@@ -28,6 +28,16 @@ namespace Frustration.EditorTools
             importer.alphaIsTransparency = importer.DoesSourceTextureHaveAlpha();
         }
 
+        // Длинную музыку не распаковываем в память целиком, а читаем с диска по ходу.
+        void OnPreprocessAudio()
+        {
+            if (!InScope(assetPath)) return;
+            var importer = (AudioImporter)assetImporter;
+            var settings = importer.defaultSampleSettings;
+            settings.loadType = AudioClipLoadType.Streaming;
+            importer.defaultSampleSettings = settings;
+        }
+
         void OnPreprocessModel()
         {
             if (!InScope(assetPath)) return;
