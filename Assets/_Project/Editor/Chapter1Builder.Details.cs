@@ -48,17 +48,23 @@ namespace Frustration.EditorTools
             // Букет гладиолусов к первому сентября.
             var jar = Primitive(PrimitiveType.Cylinder, "Flower Jar", kid, new Vector3(3.05f, 0.83f, 5.7f), new Vector3(0.1f, 0.08f, 0.1f), glass);
             Interact(jar, "Цветы", "Гладиолусы для учительницы.", "Мама вчера купила их у бабушки возле магазина.");
-            var stem = Mat("Stem", new Color(0.2f, 0.4f, 0.15f), plasterTex);
-            var petalRed = Mat("Petal Red", new Color(0.75f, 0.12f, 0.15f), plasterTex);
-            var petalWhite = Mat("Petal White", new Color(0.9f, 0.85f, 0.85f), plasterTex);
-            for (int i = 0; i < 3; i++)
+            // Каждый цветок — две скрещённые плоскости с пиксельной текстурой, как растения в PS1-играх.
+            var gladiolusRed = Mat("Gladiolus Red", Color.white, MakeColorTexture("Gladiolus Red", 16, 48, (x, y, r) => GladiolusPixel(x, y, r, false), true));
+            var gladiolusWhite = Mat("Gladiolus White", Color.white, MakeColorTexture("Gladiolus White", 16, 48, (x, y, r) => GladiolusPixel(x, y, r, true), true));
+            foreach (var m in new[] { gladiolusRed, gladiolusWhite }) { m.SetFloat("_Cutoff", 0.5f); m.SetFloat("_Cull", 0f); }
+            var stems = new[] { (-0.025f, 0f, -6f, 0.52f), (0.02f, 0.015f, 5f, 0.6f), (0.0f, -0.02f, 1f, 0.48f) };
+            for (int i = 0; i < stems.Length; i++)
             {
-                float ox = (i - 1) * 0.03f;
-                var s = Deco(PrimitiveType.Cylinder, "Stem", kid, new Vector3(3.05f + ox, 1.1f, 5.7f + (i % 2) * 0.02f), new Vector3(0.012f, 0.22f, 0.012f), stem);
-                s.transform.rotation = Quaternion.Euler(0f, 0f, (i - 1) * 8f);
-                for (int k = 0; k < 4; k++)
-                    Deco(PrimitiveType.Sphere, "Petal", kid, new Vector3(3.05f + ox * 2.2f, 1.18f + k * 0.06f, 5.7f + (i % 2) * 0.02f), Vector3.one * 0.05f, i == 1 ? petalWhite : petalRed);
+                var (ox, oz, tilt, h) = stems[i];
+                var material = i == 1 ? gladiolusWhite : gladiolusRed;
+                for (int k = 0; k < 2; k++)
+                {
+                    var q = Deco(PrimitiveType.Quad, "Gladiolus", kid, new Vector3(3.05f + ox, 0.86f + h / 2f, 5.7f + oz), new Vector3(0.17f, h, 1f), material);
+                    q.transform.rotation = Quaternion.Euler(0f, 30f + k * 90f + i * 25f, tilt);
+                }
             }
+
+            var petalWhite = Mat("Petal White", new Color(0.9f, 0.85f, 0.85f), plasterTex);
 
             // Мишка на кровати.
             var bearMat = Mat("Bear", new Color(0.5f, 0.33f, 0.18f), plasterTex);
@@ -146,6 +152,33 @@ namespace Frustration.EditorTools
         }
 
         // Декоративная мелочь без коллайдера, чтобы герой не цеплялся за неё ногами.
+        // Гладиолус 16x48: зелёный стебель с листьями внизу, выше — ярус цветков по обе стороны,
+        // на самом верху нераскрытые бутоны. Фон прозрачный.
+        static Color GladiolusPixel(int x, int y, float r, bool white)
+        {
+            var clear = new Color(0f, 0f, 0f, 0f);
+            var green = Noise(new Color(0.2f, 0.38f, 0.14f), r, 0.15f);
+            var petal = white ? new Color(0.92f, 0.88f, 0.86f) : new Color(0.8f, 0.12f, 0.16f);
+            var petalDark = white ? new Color(0.75f, 0.65f, 0.7f) : new Color(0.5f, 0.05f, 0.1f);
+
+            bool stem = x == 7 || x == 8;
+            // Узкие листья-мечи у основания.
+            if (y < 22 && (Mathf.Abs(x - 7.5f - (22 - y) * 0.12f) < 0.8f || Mathf.Abs(x - 7.5f + (22 - y) * 0.1f) < 0.8f)) return green;
+            if (y < 18) return stem ? green : clear;
+
+            // Бутоны сверху.
+            if (y >= 42) return (x >= 6 && x <= 9 && y <= 46 - (Mathf.Abs(x - 7.5f) > 1 ? 1 : 0)) ? Noise(new Color(0.3f, 0.45f, 0.18f), r, 0.1f) : clear;
+
+            // Цветки по очереди слева и справа от стебля.
+            int tier = (y - 18) / 6;
+            int ty = (y - 18) % 6;
+            float cx = tier % 2 == 0 ? 5f : 10f;
+            float radius = 3.6f - tier * 0.35f;
+            float d = Mathf.Sqrt((x - cx) * (x - cx) + (ty - 3f) * (ty - 3f) * 1.6f);
+            if (d < radius) return Noise(d < 1.3f ? petalDark : petal, r, 0.12f);
+            return stem ? green : clear;
+        }
+
         static GameObject Deco(PrimitiveType type, string name, Transform parent, Vector3 position, Vector3 scale, Material material)
         {
             var go = Primitive(type, name, parent, position, scale, material);

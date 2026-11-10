@@ -25,12 +25,12 @@ namespace Frustration.EditorTools
             // --- Пол, потолок, стены ---
             Box("Floor", room, new Vector3(9f, -0.05f, 3.8f), new Vector3(4f, 0.1f, 4.4f), floor);
             Box("Ceiling", room, new Vector3(9f, WallHeight + 0.05f, 3.8f), new Vector3(4f, 0.1f, 4.4f), ceiling);
-            WallX(room, 6f, 7f, 11f, wall);
+            WallXWithWindows(room, 6f, 7f, 11f, new[] { 10.0f }, wall);
             WallZ(room, 11f, 1.6f, 6f, wall);
             // Южная стена лежит в плоскости зеркала: её копию в отражение не берём.
             Box("Wall South (no mirror)", room, new Vector3(9f, WallHeight / 2f, 1.6f), new Vector3(4f, WallHeight, WallThickness), wall);
 
-            Panel("Wallpaper", room, true, 6f, -1, 7f, 11f, 0f, WallHeight, NoGaps, wallpaper, 0.5f);
+            Panel("Wallpaper", room, true, 6f, -1, 7f, 11f, 0f, WallHeight, new[] { WindowGap(10.0f) }, wallpaper, 0.5f);
             Panel("Wallpaper", room, true, 1.6f, +1, 7f, 11f, 0f, WallHeight, NoGaps, wallpaper, 0.5f);
             Panel("Wallpaper", room, false, 7f, +1, 1.6f, 6f, 0f, WallHeight, new[] { LivingRoomDoor }, wallpaper, 0.5f);
             Panel("Wallpaper", room, false, 11f, -1, 1.6f, 6f, 0f, WallHeight, NoGaps, wallpaper, 0.5f);

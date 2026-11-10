@@ -49,7 +49,7 @@ namespace Frustration.EditorTools
             var mirrorHole = new Gap(MirrorX0, MirrorX1, MirrorY0, MirrorY1);
 
             // Детская: x 0..3.5, z 3..6.
-            Panel("Wallpaper", kid, true, 6f, -1, 0f, 3.5f, 0f, WallHeight, NoGaps, wallpaperKid, 0.5f);
+            Panel("Wallpaper", kid, true, 6f, -1, 0f, 3.5f, 0f, WallHeight, new[] { WindowGap(1.6f) }, wallpaperKid, 0.5f);
             Panel("Wallpaper", kid, true, 3f, +1, 0f, 3.5f, 0f, WallHeight, new[] { doorKid }, wallpaperKid, 0.5f);
             Panel("Wallpaper", kid, false, 0f, +1, 3f, 6f, 0f, WallHeight, NoGaps, wallpaperKid, 0.5f);
             Panel("Wallpaper", kid, false, 3.5f, -1, 3f, 6f, 0f, WallHeight, NoGaps, wallpaperKid, 0.5f);
@@ -57,7 +57,7 @@ namespace Frustration.EditorTools
             // Кухня: x 3.5..7, z 3..6. Кафель до 1.5 м, выше крашеная стена.
             foreach (var (y0, y1, m, repeat) in new[] { (0f, 1.5f, tiles, 0.6f), (1.5f, WallHeight, paint, 1f) })
             {
-                Panel("Kitchen Wall", kitchen, true, 6f, -1, 3.5f, 7f, y0, y1, NoGaps, m, repeat);
+                Panel("Kitchen Wall", kitchen, true, 6f, -1, 3.5f, 7f, y0, y1, new[] { WindowGap(5.5f) }, m, repeat);
                 Panel("Kitchen Wall", kitchen, true, 3f, +1, 3.5f, 7f, y0, y1, new[] { doorKitchen }, m, repeat);
                 Panel("Kitchen Wall", kitchen, false, 3.5f, +1, 3f, 6f, y0, y1, NoGaps, m, repeat);
                 Panel("Kitchen Wall", kitchen, false, 7f, -1, 3f, 6f, y0, y1, NoGaps, m, repeat);
@@ -147,7 +147,7 @@ namespace Frustration.EditorTools
             var mirrorRoot = new GameObject("Mirror World").transform;
             mirrorRoot.position = new Vector3(0f, 0f, 2f * MirrorPlaneZ);
             mirrorRoot.localScale = new Vector3(1f, 1f, -1f);
-            foreach (var groupName in new[] { "Apartment", "Kid Room", "Kitchen", "Hallway", "Living Room" })
+            foreach (var groupName in new[] { "Apartment", "Kid Room", "Kitchen", "Hallway", "Living Room", "Outside" })
             {
                 var original = GameObject.Find(groupName);
                 var copy = Object.Instantiate(original, mirrorRoot);
@@ -301,7 +301,10 @@ namespace Frustration.EditorTools
             return go;
         }
 
-        static Texture2D MakeColorTexture(string name, int width, int height, System.Func<int, int, float, Color> pixel)
+        static Gap WindowGap(float x) => new Gap(x - WindowHalfWidth, x + WindowHalfWidth, WindowBottom, WindowTop);
+
+        // alpha = true: прозрачные пиксели сохраняются (для листвы и цветов с _Cutoff).
+        static Texture2D MakeColorTexture(string name, int width, int height, System.Func<int, int, float, Color> pixel, bool alpha = false)
         {
             string path = $"{Root}/Textures/{name}.png";
             var random = new System.Random(name.GetHashCode());
@@ -310,7 +313,7 @@ namespace Frustration.EditorTools
             for (int x = 0; x < width; x++)
             {
                 var c = pixel(x, y, (float)random.NextDouble());
-                c.a = 1f;
+                if (!alpha) c.a = 1f;
                 tex.SetPixel(x, y, c);
             }
             File.WriteAllBytes(path, tex.EncodeToPNG());
@@ -319,7 +322,8 @@ namespace Frustration.EditorTools
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.filterMode = FilterMode.Point;
             importer.mipmapEnabled = false;
-            importer.wrapMode = TextureWrapMode.Repeat;
+            importer.wrapMode = alpha ? TextureWrapMode.Clamp : TextureWrapMode.Repeat;
+            importer.alphaIsTransparency = alpha;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);

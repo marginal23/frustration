@@ -45,6 +45,7 @@ namespace Frustration.EditorTools
             BuildLivingRoom();
             BuildInterior();
             BuildDetails();
+            BuildOutside();
             var player = BuildPlayerAndSystems();
             BuildMirror(player);
 
@@ -88,7 +89,7 @@ namespace Frustration.EditorTools
             Box("Ceiling", parent, new Vector3(3.5f, WallHeight + 0.05f, 3.8f), new Vector3(7f, 0.1f, 4.4f), ceiling);
 
             // Наружные стены.
-            WallX(parent, 6f, 0f, 7f, wall);       // север
+            WallXWithWindows(parent, 6f, 0f, 7f, new[] { 1.6f, 5.5f }, wall);  // север, с проёмами окон
             // Южная стена коридора с проёмом под зеркало. Части названы "Mirror ...",
             // чтобы они не копировались в комнату-отражение.
             Box("Mirror Wall Left", parent, new Vector3(MirrorX0 / 2f, WallHeight / 2f, 1.6f), new Vector3(MirrorX0, WallHeight, WallThickness), wall);
@@ -246,10 +247,10 @@ namespace Frustration.EditorTools
             pivot.transform.localPosition = new Vector3(0f, 1.1f, 0f);
             var cam = pivot.AddComponent<Camera>();
             cam.nearClipPlane = 0.05f;
-            cam.farClipPlane = 30f;
+            cam.farClipPlane = 60f;
             cam.fieldOfView = 70f;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = Color.black;
+            cam.backgroundColor = SkyColor;
             pivot.AddComponent<AudioListener>();
             pivot.AddComponent<RetroCamera>();
             pivot.tag = "MainCamera";
@@ -372,21 +373,52 @@ namespace Frustration.EditorTools
             Box("Lintel", parent, new Vector3(center.x, (doorTop + WallHeight) / 2f, center.z), new Vector3(size.x, WallHeight - doorTop, size.z), m);
         }
 
+        // Проём окна: 0.85 x 0.95 м, низ на высоте 1.025 м. Центр окна по высоте — 1.5 м.
+        const float WindowHalfWidth = 0.425f, WindowBottom = 1.025f, WindowTop = 1.975f;
+
+        // Утреннее небо: цвет фона камеры. Туман чёрный, поэтому дальние дома и трубы
+        // превращаются в тёмные силуэты на сером небе.
+        static readonly Color SkyColor = new Color(0.3f, 0.33f, 0.38f);
+
+        // Стена вдоль X с проёмами под окна (центры окон по X).
+        static void WallXWithWindows(Transform parent, float z, float x1, float x2, float[] windows, Material m)
+        {
+            float cursor = x1;
+            foreach (float wx in windows)
+            {
+                float a = wx - WindowHalfWidth, b = wx + WindowHalfWidth;
+                WallX(parent, z, cursor, a, m);
+                Box("Wall", parent, new Vector3(wx, WindowBottom / 2f, z), new Vector3(b - a, WindowBottom, WallThickness), m);
+                Box("Wall", parent, new Vector3(wx, (WindowTop + WallHeight) / 2f, z), new Vector3(b - a, WallHeight - WindowTop, WallThickness), m);
+                cursor = b;
+            }
+            WallX(parent, z, cursor, x2, m);
+        }
+
         static GameObject Window(string name, Transform parent, Vector3 position)
         {
-            var frame = Box(name + " Frame", parent, position + new Vector3(0f, 0f, 0.01f), new Vector3(1.0f, 1.1f, 0.04f), Mat("Window Frame", new Color(0.7f, 0.7f, 0.68f), plasterTex));
-            var glass = Primitive(PrimitiveType.Quad, name, parent, position - new Vector3(0f, 0f, 0.02f), new Vector3(0.85f, 0.95f, 1f), Mat("Window Glass", Color.black, plasterTex, 1f, new Color(0.25f, 0.3f, 0.42f)));
-            glass.transform.rotation = Quaternion.identity;
-            Object.DestroyImmediate(glass.GetComponent<Collider>());
+            // Рама вокруг настоящего проёма в стене.
+            var frameMat = Mat("Window Frame", new Color(0.7f, 0.7f, 0.68f), plasterTex);
+            var z = position.z + 0.01f;
+            Box(name + " Frame", parent, new Vector3(position.x, position.y + 0.5125f, z), new Vector3(1.0f, 0.075f, 0.04f), frameMat);
+            Box(name + " Frame", parent, new Vector3(position.x, position.y - 0.5125f, z), new Vector3(1.0f, 0.075f, 0.04f), frameMat);
+            Box(name + " Frame", parent, new Vector3(position.x - 0.4625f, position.y, z), new Vector3(0.075f, 0.95f, 0.04f), frameMat);
+            Box(name + " Frame", parent, new Vector3(position.x + 0.4625f, position.y, z), new Vector3(0.075f, 0.95f, 0.04f), frameMat);
+
+            // Стекла нет (как в старых играх), но есть невидимая преграда: через неё нельзя
+            // выпасть, и на неё можно навести взгляд, чтобы посмотреть в окно.
+            var pane = new GameObject(name);
+            pane.transform.SetParent(parent, false);
+            pane.transform.position = new Vector3(position.x, position.y, position.z + 0.06f);
+            pane.AddComponent<BoxCollider>().size = new Vector3(0.85f, 0.95f, 0.05f);
 
             // Переплёт (крестовина рамы) и подоконник.
-            var frameMat = Mat("Window Frame", new Color(0.7f, 0.7f, 0.68f), plasterTex);
             var bar1 = Box(name + " Bar", parent, position + new Vector3(0f, 0.12f, -0.03f), new Vector3(0.85f, 0.04f, 0.02f), frameMat);
             var bar2 = Box(name + " Bar", parent, position + new Vector3(0f, 0f, -0.03f), new Vector3(0.04f, 0.95f, 0.02f), frameMat);
             Object.DestroyImmediate(bar1.GetComponent<Collider>());
             Object.DestroyImmediate(bar2.GetComponent<Collider>());
             Box(name + " Sill", parent, new Vector3(position.x, position.y - 0.565f, position.z - 0.1f), new Vector3(1.15f, 0.03f, 0.22f), frameMat);
-            return frame;
+            return pane;
         }
 
         static Light PointLight(string name, Transform parent, Vector3 position, Color color, float intensity, float range)

@@ -13,6 +13,8 @@ Shader "Frustration/PS1 Lit"
         [HDR] _EmissionColor ("Emission", Color) = (0, 0, 0, 1)
         _SnapScale ("Vertex Snap (0 = off)", Range(0, 1)) = 0.5
         _Affine ("Affine Texture Warp", Range(0, 1)) = 1
+        _Cutoff ("Alpha Cutoff (0 = off)", Range(0, 1)) = 0
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
     }
 
     SubShader
@@ -23,6 +25,7 @@ Shader "Frustration/PS1 Lit"
         {
             Name "ForwardLit"
             Tags { "LightMode" = "UniversalForward" }
+            Cull [_Cull]
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -42,6 +45,7 @@ Shader "Frustration/PS1 Lit"
                 half4 _EmissionColor;
                 float _SnapScale;
                 float _Affine;
+                float _Cutoff;
             CBUFFER_END
 
             // Плоскость зеркала (нормаль xyz, смещение w), задаётся скриптом MirrorWorld.
@@ -116,6 +120,8 @@ Shader "Frustration/PS1 Lit"
             {
                 float2 uv = input.uvw.xy / input.uvw.z;
                 half4 color = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv) * _BaseColor;
+                // Прозрачные пиксели (листья, лепестки) просто отбрасываются, как на старых консолях.
+                if (_Cutoff > 0.0) clip(color.a - _Cutoff);
                 color.rgb = color.rgb * input.lighting + _EmissionColor.rgb;
                 color.rgb = MixFog(color.rgb, input.fogFactor);
                 return color;
@@ -128,6 +134,7 @@ Shader "Frustration/PS1 Lit"
             Name "DepthOnly"
             Tags { "LightMode" = "DepthOnly" }
             ZWrite On
+            Cull [_Cull]
             ColorMask R
 
             HLSLPROGRAM
@@ -141,15 +148,30 @@ Shader "Frustration/PS1 Lit"
                 half4 _EmissionColor;
                 float _SnapScale;
                 float _Affine;
+                float _Cutoff;
             CBUFFER_END
 
-            float4 vert(float4 positionOS : POSITION) : SV_POSITION
+            TEXTURE2D(_BaseMap);
+            SAMPLER(sampler_BaseMap);
+
+            struct DepthVaryings
             {
-                return TransformObjectToHClip(positionOS.xyz);
+                float4 positionCS : SV_POSITION;
+                float2 uv : TEXCOORD0;
+            };
+
+            DepthVaryings vert(float4 positionOS : POSITION, float2 uv : TEXCOORD0)
+            {
+                DepthVaryings output;
+                output.positionCS = TransformObjectToHClip(positionOS.xyz);
+                output.uv = TRANSFORM_TEX(uv, _BaseMap);
+                return output;
             }
 
-            half frag() : SV_Target
+            half frag(DepthVaryings input) : SV_Target
             {
+                if (_Cutoff > 0.0)
+                    clip(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).a * _BaseColor.a - _Cutoff);
                 return 0;
             }
             ENDHLSL
