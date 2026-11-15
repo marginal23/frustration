@@ -12,6 +12,7 @@ namespace Frustration
         public override void Interact()
         {
             if (source == null) return;
+            ProceduralSfx.PlayAt(ProceduralSfx.Click(), transform.position, 0.5f);
             if (source.isPlaying) source.Pause();
             else source.UnPause();
             if (!source.isPlaying && source.time == 0f) source.Play();

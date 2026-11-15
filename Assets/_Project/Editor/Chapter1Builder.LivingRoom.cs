@@ -37,7 +37,7 @@ namespace Frustration.EditorTools
 
             // Стенка, диван, кресло и дверь со стеклом — в Chapter1Builder.Furniture.cs.
             // Журнальный столик — в Chapter1Builder.Furniture.cs.
-            FlatQuad("Floor Carpet", room, 7.7f, 10.3f, 2.5f, 4.3f, 0.006f, carpet, 2.6f, 1.8f);
+            FlatCollider(FlatQuad("Floor Carpet", room, 7.7f, 10.3f, 2.5f, 4.3f, 0.006f, carpet, 2.6f, 1.8f));
 
             // --- Торшер: единственный включённый свет в зале ---
             Primitive(PrimitiveType.Cylinder, "Floor Lamp Pole", room, new Vector3(10.6f, 0.75f, 2.1f), new Vector3(0.03f, 0.75f, 0.03f), Mat("Strap", new Color(0.08f, 0.08f, 0.08f), plasterTex));

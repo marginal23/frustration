@@ -191,13 +191,19 @@ namespace Frustration.EditorTools
             photo.transform.rotation = Quaternion.identity;
             Interact(photo, "Фотография", "Папа в форме, совсем молодой.", "Здесь он улыбается.", "Я не помню, чтобы он так улыбался.");
 
-            Box("Phone Stand", hall, new Vector3(0.4f, 0.2f, 1.85f), new Vector3(0.6f, 0.4f, 0.3f), wood);
             Box("Coat", hall, new Vector3(0.9f, 1.4f, 1.72f), new Vector3(0.45f, 0.8f, 0.12f), Mat("Coat", new Color(0.2f, 0.22f, 0.2f), plasterTex));
 
             var door = Box("Front Door", hall, new Vector3(0.06f, 1.02f, 2.3f), new Vector3(0.06f, 2.05f, 0.9f), doorMat);
             var exit = door.AddComponent<ExitDoor>();
             exit.prompt = "Выйти в школу";
-            exit.lockedLines = new[] { "Без ранца в школу нельзя." };
+            // Чтобы выйти, надо прочитать мамину записку, взять цветы и ранец.
+            exit.requiredFlags = new[] { "note", "flowers", "backpack" };
+            exit.missingLines = new[]
+            {
+                "Мамы нигде нет. Может, она что-то оставила на кухне?",
+                "Цветы! Мама купила их для учительницы.",
+                "Без ранца в школу нельзя.",
+            };
             exit.endTitle = "Глава 1. Первый класс";
             exit.endSubtitle = "Продолжение следует";
 
@@ -233,6 +239,7 @@ namespace Frustration.EditorTools
             pivot.tag = "MainCamera";
 
             var fps = player.AddComponent<FirstPersonController>();
+            player.AddComponent<Footsteps>();
             fps.cameraPivot = pivot.transform;
             player.AddComponent<PlayerInteractor>().viewCamera = cam;
 
@@ -243,7 +250,8 @@ namespace Frustration.EditorTools
             screenCam.backgroundColor = Color.black;
             screenCam.depth = 10;
 
-            new GameObject("Game UI").AddComponent<GameUI>();
+            var ui = new GameObject("Game UI").AddComponent<GameUI>();
+            ui.introLines = new[] { "Мама меня не разбудила.", "Сегодня первое сентября. Надо собираться." };
 
             // Общий гул убран: теперь в квартире звучит радио из зала.
             return player.transform;

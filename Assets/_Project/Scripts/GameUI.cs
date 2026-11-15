@@ -12,6 +12,8 @@ namespace Frustration
 
         [TextArea] public string introTitle = "МопсГрад";
         [TextArea] public string introSubtitle = "1 сентября 2004 года";
+        [Tooltip("Мысли героя сразу после вступления.")]
+        [TextArea] public string[] introLines;
 
         // Свой шрифт можно перетащить сюда в инспекторе (например, пиксельный .ttf).
         // Если пусто, берётся системный моноширинный шрифт в духе печатной машинки.
@@ -47,6 +49,7 @@ namespace Frustration
             ShowTitle(null, null);
             yield return FadeTo(0f, 3f);
             if (player != null) player.inputLocked = false;
+            ShowLines(introLines);
         }
 
         public void SetGameTexture(Texture texture)

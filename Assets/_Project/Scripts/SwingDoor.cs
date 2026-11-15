@@ -20,6 +20,8 @@ namespace Frustration
         {
             isOpen = !isOpen;
             prompt = isOpen ? openPrompt : closedPrompt;
+            if (leaves != null && leaves.Length > 0)
+                ProceduralSfx.PlayAt(ProceduralSfx.Creak(), leaves[0].position + Vector3.up, 0.45f);
         }
 
         void Update()

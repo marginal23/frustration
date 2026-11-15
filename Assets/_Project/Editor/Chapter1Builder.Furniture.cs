@@ -51,6 +51,15 @@ namespace Frustration.EditorTools
             var fridge = Fridge(kitchen, new Vector3(6.65f, 0f, 5.62f), -90f);
             Interact(fridge.gameObject, "Холодильник", "Холодильник «Юрюзань».", "Внутри банка огурцов и холодная бутылка.");
             AddSound(fridge.gameObject, ProceduralAmbience.Kind.FridgeHum, 0.2f, true);
+            // Мамина записка на дверце холодильника, под магнитом.
+            var note = Primitive(PrimitiveType.Quad, "Mom Note", kitchen, new Vector3(6.36f, 1.08f, 5.6f), new Vector3(0.12f, 0.16f, 1f),
+                Mat("Mom Note", Color.white, MakeColorTexture("Mom Note", 12, 16, NotePixel)));
+            note.transform.rotation = Quaternion.Euler(0f, 90f, 4f);
+            Deco(PrimitiveType.Sphere, "Magnet", kitchen, new Vector3(6.352f, 1.15f, 5.6f), new Vector3(0.012f, 0.03f, 0.03f), Mat("Calendar Red", new Color(0.65f, 0.12f, 0.1f), plasterTex));
+            var readNote = Interact(note, "Записка", "Записка от мамы.",
+                "«Сынок, я на смене до вечера. Цветы на столе, ранец на стуле.»",
+                "«Папу не буди. Ключ под ковриком. Люблю тебя.»");
+            readNote.setsFlag = "note";
             var stove = ElectricStove(kitchen, new Vector3(6.68f, 0f, 3.32f), -90f);
             Interact(stove.gameObject, "Плита", "Чайник холодный. Никто не завтракал.");
             SinkUnit(kitchen, new Vector3(3.83f, 0f, 4.0f), 90f);
@@ -73,6 +82,12 @@ namespace Frustration.EditorTools
 
             // ================= Коридор =================
             ShoeShelf(hall, new Vector3(1.15f, 0f, 1.81f), 0f);
+            MirrorDresser(hall, new Vector3(2.2f, 0f, 1.82f));
+            var phoneStand = PhoneStand(hall, new Vector3(0.4f, 0f, 1.83f));
+            var phone = RotaryPhone(hall, phoneStand.TransformPoint(new Vector3(0f, 0.623f, 0f)));
+            Interact(phone.gameObject, "Телефон", "Мама просила не звонить ей на работу.");
+            Pouf(hall, new Vector3(3.0f, 0f, 1.92f));
+            HallTable(hall, new Vector3(4.4f, 0f, 1.83f));
 
             // ================= Выключатели =================
             var bulbOn = Mat("Bulb", Color.black, plasterTex, 1f, new Color(1f, 0.8f, 0.5f));
@@ -281,6 +296,106 @@ namespace Frustration.EditorTools
             }
             Solid(g, new Vector3(0f, 1.82f, 0f), new Vector3(0.9f, 0.55f, 0.32f));
             return g;
+        }
+
+        // Низкая полированная тумба под зеркалом: два ящика, на ней салфетка, духи и щётка.
+        static void MirrorDresser(Transform parent, Vector3 position)
+        {
+            var g = Group("Dresser Under Mirror", parent, position, 0f); // имя не с «Mirror»: такие не копируются в отражение
+            var veneer = Mat("Veneer", new Color(0.55f, 0.22f, 0.12f), grainTex);
+            var front = Mat("Desk Drawer", new Color(0.5f, 0.33f, 0.2f), grainTex);
+            Part(g, "Body", new Vector3(0f, 0.17f, 0f), new Vector3(0.8f, 0.24f, 0.3f), veneer);
+            Part(g, "Top", new Vector3(0f, 0.3f, 0f), new Vector3(0.84f, 0.02f, 0.32f), veneer);
+            foreach (int s in new[] { -1, 1 })
+            {
+                Part(g, "Drawer", new Vector3(s * 0.195f, 0.17f, 0.152f), new Vector3(0.38f, 0.2f, 0.01f), front);
+                Part(g, "Knob", new Vector3(s * 0.195f, 0.17f, 0.162f), Vector3.one * 0.022f, Metal, PrimitiveType.Sphere);
+                Part(g, "Leg", new Vector3(s * 0.36f, 0.025f, 0.12f), new Vector3(0.03f, 0.05f, 0.03f), Black);
+                Part(g, "Leg", new Vector3(s * 0.36f, 0.025f, -0.12f), new Vector3(0.03f, 0.05f, 0.03f), Black);
+            }
+            Part(g, "Doily", new Vector3(0f, 0.312f, 0f), new Vector3(0.32f, 0.002f, 0.22f), Mat("Doily", new Color(0.9f, 0.9f, 0.86f), plasterTex), PrimitiveType.Cylinder);
+            var pinkGlass = DoubleSided(Mat("Perfume Glass", new Color(0.85f, 0.6f, 0.65f), plasterTex, 1f, new Color(0.08f, 0.04f, 0.05f)));
+            Frustum("Perfume", g, g.TransformPoint(new Vector3(-0.24f, 0.31f, 0f)), 0.03f, 0.022f, 0.08f, pinkGlass, 6);
+            Part(g, "Perfume Cap", new Vector3(-0.24f, 0.4f, 0f), Vector3.one * 0.025f, Mat("Gold Strip", new Color(0.8f, 0.62f, 0.25f), plasterTex, 1f, new Color(0.06f, 0.045f, 0.01f)), PrimitiveType.Sphere);
+            Part(g, "Hairbrush", new Vector3(0.2f, 0.322f, 0.02f), new Vector3(0.05f, 0.02f, 0.16f), Mat("Wood Dark", new Color(0.3f, 0.18f, 0.1f), woodTex), ry: 15f);
+            Solid(g, new Vector3(0f, 0.16f, 0f), new Vector3(0.84f, 0.32f, 0.32f));
+        }
+
+        // Телефонная тумба: закрытый низ, открытая ниша с телефонными справочниками.
+        static Transform PhoneStand(Transform parent, Vector3 position)
+        {
+            var g = Group("Phone Stand", parent, position, 0f);
+            var veneer = Mat("Light Veneer", new Color(0.68f, 0.45f, 0.25f), grainTex);
+            Part(g, "Body", new Vector3(0f, 0.2f, 0f), new Vector3(0.5f, 0.36f, 0.32f), veneer);
+            Part(g, "Door", new Vector3(0f, 0.2f, 0.161f), new Vector3(0.46f, 0.32f, 0.01f), Mat("Light Veneer Door", new Color(0.62f, 0.4f, 0.22f), grainTex));
+            Part(g, "Knob", new Vector3(0.17f, 0.25f, 0.172f), Vector3.one * 0.022f, Metal, PrimitiveType.Sphere);
+            Part(g, "Niche Side", new Vector3(-0.24f, 0.49f, 0f), new Vector3(0.02f, 0.22f, 0.32f), veneer);
+            Part(g, "Niche Side", new Vector3(0.24f, 0.49f, 0f), new Vector3(0.02f, 0.22f, 0.32f), veneer);
+            Part(g, "Niche Back", new Vector3(0f, 0.49f, -0.15f), new Vector3(0.48f, 0.22f, 0.02f), veneer);
+            Part(g, "Top", new Vector3(0f, 0.61f, 0f), new Vector3(0.52f, 0.025f, 0.34f), veneer);
+            Part(g, "Phone Book", new Vector3(-0.08f, 0.4f, 0.02f), new Vector3(0.17f, 0.04f, 0.24f), Mat("Phone Book Red", new Color(0.55f, 0.12f, 0.1f), plasterTex));
+            Part(g, "Phone Book", new Vector3(0.11f, 0.395f, 0.02f), new Vector3(0.15f, 0.03f, 0.22f), Mat("Magazine", new Color(0.1f, 0.25f, 0.45f), plasterTex));
+            Solid(g, new Vector3(0f, 0.31f, 0f), new Vector3(0.52f, 0.62f, 0.34f));
+            return g;
+        }
+
+        // Дисковый телефон: корпус, наклонный диск, трубка на рычагах.
+        static Transform RotaryPhone(Transform parent, Vector3 position)
+        {
+            var g = Group("Phone", parent, position, 0f);
+            var body = Mat("Phone", new Color(0.6f, 0.12f, 0.1f), plasterTex);
+            Part(g, "Base", new Vector3(0f, 0.035f, 0f), new Vector3(0.2f, 0.07f, 0.22f), body);
+            Part(g, "Front Slope", new Vector3(0f, 0.06f, 0.06f), new Vector3(0.19f, 0.05f, 0.12f), body, rx: -25f);
+            Part(g, "Dial", new Vector3(0f, 0.088f, 0.07f), new Vector3(0.11f, 0.004f, 0.11f), Mat("Clock Face", new Color(0.85f, 0.83f, 0.75f), plasterTex), PrimitiveType.Cylinder, -25f);
+            Part(g, "Dial Center", new Vector3(0f, 0.091f, 0.071f), new Vector3(0.04f, 0.004f, 0.04f), body, PrimitiveType.Cylinder, -25f);
+            Part(g, "Cradle", new Vector3(0f, 0.08f, -0.04f), new Vector3(0.17f, 0.03f, 0.06f), body);
+            Part(g, "Handset", new Vector3(0f, 0.11f, -0.04f), new Vector3(0.2f, 0.03f, 0.045f), body);
+            Part(g, "Earpiece", new Vector3(-0.1f, 0.105f, -0.04f), new Vector3(0.06f, 0.05f, 0.07f), body, PrimitiveType.Sphere);
+            Part(g, "Mouthpiece", new Vector3(0.1f, 0.105f, -0.04f), new Vector3(0.06f, 0.05f, 0.07f), body, PrimitiveType.Sphere);
+            Part(g, "Cord", new Vector3(0.11f, 0.06f, -0.06f), new Vector3(0.012f, 0.06f, 0.012f), Black);
+            Solid(g, new Vector3(0f, 0.06f, 0f), new Vector3(0.24f, 0.14f, 0.24f));
+            return g;
+        }
+
+        // Круглый пуфик на коротких ножках, обивка с пуговицей посередине.
+        static void Pouf(Transform parent, Vector3 position)
+        {
+            var g = Group("Pouf", parent, position, 0f);
+            var cloth = Mat("Pouf Fabric", new Color(0.45f, 0.12f, 0.12f), plasterTex);
+            Part(g, "Body", new Vector3(0f, 0.24f, 0f), new Vector3(0.4f, 0.18f, 0.4f), cloth, PrimitiveType.Cylinder);
+            Part(g, "Cushion", new Vector3(0f, 0.42f, 0f), new Vector3(0.42f, 0.07f, 0.42f), cloth, PrimitiveType.Sphere);
+            Part(g, "Button", new Vector3(0f, 0.455f, 0f), Vector3.one * 0.025f, Mat("Knob Dark", new Color(0.2f, 0.15f, 0.1f), plasterTex), PrimitiveType.Sphere);
+            for (int i = 0; i < 4; i++)
+            {
+                float a = (i + 0.5f) * Mathf.PI / 2f;
+                Part(g, "Leg", new Vector3(Mathf.Cos(a) * 0.14f, 0.03f, Mathf.Sin(a) * 0.14f), new Vector3(0.03f, 0.03f, 0.03f), Mat("Wood Dark", new Color(0.3f, 0.18f, 0.1f), woodTex), PrimitiveType.Cylinder);
+            }
+            Solid(g, new Vector3(0f, 0.23f, 0f), new Vector3(0.42f, 0.46f, 0.42f));
+        }
+
+        // Узкий столик у стены коридора: кружевная дорожка, ваза, полка с газетами.
+        static void HallTable(Transform parent, Vector3 position)
+        {
+            var g = Group("Hall Table", parent, position, 0f);
+            var veneer = Mat("Veneer", new Color(0.55f, 0.22f, 0.12f), grainTex);
+            Part(g, "Top", new Vector3(0f, 0.735f, 0f), new Vector3(0.9f, 0.03f, 0.32f), veneer);
+            Part(g, "Apron", new Vector3(0f, 0.69f, 0f), new Vector3(0.86f, 0.06f, 0.28f), veneer);
+            Part(g, "Shelf", new Vector3(0f, 0.15f, 0f), new Vector3(0.86f, 0.02f, 0.28f), veneer);
+            foreach (var (x, z) in new[] { (-0.42f, -0.13f), (0.42f, -0.13f), (-0.42f, 0.13f), (0.42f, 0.13f) })
+                Part(g, "Leg", new Vector3(x, 0.36f, z), new Vector3(0.03f, 0.72f, 0.03f), veneer);
+            Part(g, "Lace Runner", new Vector3(0f, 0.752f, 0f), new Vector3(0.6f, 0.003f, 0.2f), Mat("Lace", new Color(0.95f, 0.95f, 0.92f), plasterTex));
+            Frustum("Vase", g, g.TransformPoint(new Vector3(-0.25f, 0.75f, 0f)), 0.045f, 0.03f, 0.18f, DoubleSided(Mat("Crystal Cut", new Color(0.78f, 0.82f, 0.88f), plasterTex, 1f, new Color(0.14f, 0.14f, 0.16f))), 6);
+            Part(g, "Newspapers", new Vector3(0.1f, 0.18f, 0f), new Vector3(0.35f, 0.04f, 0.25f), Mat("Newspaper", new Color(0.78f, 0.76f, 0.7f), plasterTex));
+            Solid(g, new Vector3(0f, 0.375f, 0f), new Vector3(0.9f, 0.75f, 0.32f));
+        }
+
+        // Записка от мамы: бумага в клетку с синими строчками, написанными от руки.
+        static Color NotePixel(int x, int y, float r)
+        {
+            var paper = new Color(0.93f, 0.92f, 0.86f);
+            if (x % 4 == 0 || y % 4 == 0) paper = new Color(0.8f, 0.85f, 0.88f);
+            bool line = y % 3 == 1 && y < 14 && x >= 1 && x <= 10 - (y % 2) * 2 && r > 0.25f;
+            return line ? new Color(0.15f, 0.2f, 0.55f) : paper;
         }
 
         // Клетчатое шерстяное одеяло.

@@ -42,8 +42,16 @@ namespace Frustration.EditorTools
             // ================= Детская =================
 
             // Букет гладиолусов к первому сентября.
-            var jar = Primitive(PrimitiveType.Cylinder, "Flower Jar", kid, new Vector3(3.05f, 0.83f, 5.7f), new Vector3(0.1f, 0.08f, 0.1f), glass);
-            Interact(jar, "Цветы", "Гладиолусы для учительницы.", "Мама вчера купила их у бабушки возле магазина.");
+            Deco(PrimitiveType.Cylinder, "Flower Jar", kid, new Vector3(3.05f, 0.83f, 5.7f), new Vector3(0.1f, 0.08f, 0.1f), glass);
+            // Букет — отдельная группа: его можно взять (он исчезает из банки), банка остаётся.
+            var bouquet = new GameObject("Gladioli").transform;
+            bouquet.SetParent(kid, false);
+            var bouquetBox = bouquet.gameObject.AddComponent<BoxCollider>();
+            bouquetBox.center = new Vector3(3.05f, 1.1f, 5.7f);
+            bouquetBox.size = new Vector3(0.24f, 0.6f, 0.24f);
+            var takeFlowers = Interact(bouquet.gameObject, "Взять цветы", "Гладиолусы для учительницы.", "Мама вчера купила их у бабушки возле магазина.");
+            takeFlowers.setsFlag = "flowers";
+            takeFlowers.hideAfterUse = true;
             // Каждый цветок — две скрещённые плоскости с пиксельной текстурой, как растения в PS1-играх.
             var gladiolusRed = Mat("Gladiolus Red", Color.white, MakeColorTexture("Gladiolus Red", 16, 48, (x, y, r) => GladiolusPixel(x, y, r, false), true));
             var gladiolusWhite = Mat("Gladiolus White", Color.white, MakeColorTexture("Gladiolus White", 16, 48, (x, y, r) => GladiolusPixel(x, y, r, true), true));
@@ -55,7 +63,7 @@ namespace Frustration.EditorTools
                 var material = i == 1 ? gladiolusWhite : gladiolusRed;
                 for (int k = 0; k < 2; k++)
                 {
-                    var q = Deco(PrimitiveType.Quad, "Gladiolus", kid, new Vector3(3.05f + ox, 0.86f + h / 2f, 5.7f + oz), new Vector3(0.17f, h, 1f), material);
+                    var q = Deco(PrimitiveType.Quad, "Gladiolus", bouquet, new Vector3(3.05f + ox, 0.86f + h / 2f, 5.7f + oz), new Vector3(0.17f, h, 1f), material);
                     q.transform.rotation = Quaternion.Euler(0f, 30f + k * 90f + i * 25f, tilt);
                 }
             }

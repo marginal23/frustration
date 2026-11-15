@@ -18,6 +18,7 @@ namespace Frustration
         {
             isOn = !isOn;
             Apply();
+            ProceduralSfx.PlayAt(ProceduralSfx.Click(), transform.position, 0.5f);
         }
 
         void Apply()

@@ -73,7 +73,7 @@ namespace Frustration.EditorTools
             // --- Детская ---
             // Ковёр на стене над кроватью: классика советской квартиры.
             AddQuad("Wall Carpet", kid, false, 0.05f + 0.008f, +1, 4.05f, 5.85f, 0.7f, 1.95f, carpet, 1.8f, 1.25f, 4.05f, 0.7f, true);
-            FlatQuad("Floor Rug", kid, 1.1f, 2.4f, 3.925f, 4.875f, 0.006f, carpet, 1.3f, 0.95f);
+            FlatCollider(FlatQuad("Floor Rug", kid, 1.1f, 2.4f, 3.925f, 4.875f, 0.006f, carpet, 1.3f, 0.95f));
             Box("Bookshelf", kid, new Vector3(3.33f, 1.45f, 4.4f), new Vector3(0.24f, 0.03f, 0.9f), wood);
             Color[] bookColors = { new Color(0.5f, 0.1f, 0.1f), new Color(0.1f, 0.25f, 0.45f), new Color(0.2f, 0.4f, 0.2f), new Color(0.6f, 0.5f, 0.2f), new Color(0.35f, 0.2f, 0.4f) };
             for (int i = 0; i < 9; i++)
@@ -98,10 +98,7 @@ namespace Frustration.EditorTools
             AddSound(clock, ProceduralAmbience.Kind.ClockTick, 0.25f, true);
 
             // --- Коридор ---
-            Box("Dresser", hall, new Vector3((MirrorX0 + MirrorX1) / 2f, 0.17f, 1.8f), new Vector3(0.8f, 0.34f, 0.28f), wood);
-            var phone = Box("Phone", hall, new Vector3(0.4f, 0.44f, 1.85f), new Vector3(0.18f, 0.08f, 0.2f), Mat("Phone", new Color(0.15f, 0.3f, 0.2f), plasterTex));
-            Box("Phone Handset", hall, new Vector3(0.4f, 0.495f, 1.85f), new Vector3(0.05f, 0.04f, 0.22f), Mat("Phone", new Color(0.15f, 0.3f, 0.2f), plasterTex));
-            Interact(phone, "Телефон", "Мама просила не звонить ей на работу.");
+            // Тумба под зеркалом, телефон и мебель коридора — в Chapter1Builder.Furniture.cs.
         }
 
         static void Curtains(Transform parent, float windowX, Material curtain)
@@ -175,6 +172,17 @@ namespace Frustration.EditorTools
             var satchel = Satchel(reflection, Vector3.zero, Quaternion.identity).transform;
             satchel.localPosition = new Vector3(0f, 0.58f, -0.13f);
             satchel.localRotation = Quaternion.Euler(0f, 180f, 0f);
+
+            // Цветы в правой руке у отражения (показываются, когда герой их взял).
+            var flowers = new GameObject("Reflection Flowers").transform;
+            flowers.SetParent(reflection, false);
+            flowers.localPosition = new Vector3(0.22f, 0.48f, 0.08f);
+            var flowerMat = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/Gladiolus Red.mat");
+            for (int k = 0; k < 2; k++)
+            {
+                var q = LocalPrimitive(PrimitiveType.Quad, "Flower", flowers, new Vector3(0f, 0.2f, 0f), new Vector3(0.14f, 0.45f, 1f), flowerMat);
+                q.transform.localRotation = Quaternion.Euler(0f, 30f + k * 90f, 0f);
+            }
             foreach (var c in reflection.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
 
             var mirror = new GameObject("Mirror").AddComponent<MirrorWorld>();
@@ -182,6 +190,9 @@ namespace Frustration.EditorTools
             mirror.player = player;
             mirror.reflection = reflection;
             mirror.reflectionSatchel = satchel.gameObject;
+            mirror.reflectionFlowers = flowers.gameObject;
+            mirror.mirrorX = cx;
+            mirror.flickerLight = hall.Find("Hall Bulb").GetComponent<Light>();
         }
 
         // В копии оставляем только то, что видно: убираем коллайдеры, звуки, взаимодействия
@@ -346,6 +357,15 @@ namespace Frustration.EditorTools
             renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             return go;
+        }
+
+        // Тонкий коллайдер под ковром: по нему шаги определяют, что под ногами ковёр.
+        static void FlatCollider(GameObject go)
+        {
+            var bounds = go.GetComponent<MeshFilter>().sharedMesh.bounds;
+            var box = go.AddComponent<BoxCollider>();
+            box.center = bounds.center;
+            box.size = new Vector3(bounds.size.x, 0.012f, bounds.size.z);
         }
 
         static Gap WindowGap(float x) => new Gap(x - WindowHalfWidth, x + WindowHalfWidth, WindowBottom, WindowTop);
