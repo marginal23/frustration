@@ -42,6 +42,9 @@ namespace Frustration.EditorTools
             // ================= Детская =================
 
             // Букет гладиолусов к первому сентября.
+            // Цветы нужны только в главах, где их надо отнести учительнице.
+            bool needFlowers = System.Array.IndexOf(chapter.requiredFlags, "flowers") >= 0;
+            if (needFlowers) {
             Deco(PrimitiveType.Cylinder, "Flower Jar", kid, new Vector3(3.05f, 0.83f, 5.7f), new Vector3(0.1f, 0.08f, 0.1f), glass);
             // Букет — отдельная группа: его можно взять (он исчезает из банки), банка остаётся.
             var bouquet = new GameObject("Gladioli").transform;
@@ -66,6 +69,8 @@ namespace Frustration.EditorTools
                     var q = Deco(PrimitiveType.Quad, "Gladiolus", bouquet, new Vector3(3.05f + ox, 0.86f + h / 2f, 5.7f + oz), new Vector3(0.17f, h, 1f), material);
                     q.transform.rotation = Quaternion.Euler(0f, 30f + k * 90f + i * 25f, tilt);
                 }
+            }
+
             }
 
             var petalWhite = Mat("Petal White", new Color(0.9f, 0.85f, 0.85f), plasterTex);
@@ -101,20 +106,26 @@ namespace Frustration.EditorTools
             Deco(PrimitiveType.Cube, "Bread", kitchen, new Vector3(5.38f, 0.785f, 4.85f), new Vector3(0.08f, 0.03f, 0.06f), Mat("Bread", new Color(0.6f, 0.42f, 0.25f), plasterTex));
             // Календарь на весь 2004 год: обведены 1 сентября и 11 ноября.
             Deco(PrimitiveType.Cube, "Calendar Back", kitchen, new Vector3(6.5f, 1.6f, 3.058f), new Vector3(0.44f, 0.62f, 0.006f), Mat("Calendar", new Color(0.88f, 0.86f, 0.8f), plasterTex));
-            var calendar = Primitive(PrimitiveType.Quad, "Calendar", kitchen, new Vector3(6.5f, 1.6f, 3.063f), new Vector3(0.42f, 0.6f, 1f), Mat("Calendar 2004", Color.white, MakeColorTexture("Calendar 2004", 48, 72, Calendar2004Pixel)));
+            var calendar = Primitive(PrimitiveType.Quad, "Calendar", kitchen, new Vector3(6.5f, 1.6f, 3.063f), new Vector3(0.42f, 0.6f, 1f), Mat("Calendar " + chapter.year, Color.white, MakeColorTexture("Calendar " + chapter.year, 48, 72, CalendarPixel)));
             calendar.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-            Interact(calendar, "Календарь", "Календарь на 2004 год.", "Первое сентября мама обвела ручкой.");
+            Interact(calendar, "Календарь", $"Календарь на {chapter.year} год.", chapter.decay <= 2 ? "Первое сентября мама обвела ручкой." : "Первое сентября в этот раз никто не обвёл.");
 
             // ================= Коридор =================
 
             var shoeDark = Mat("Boots", new Color(0.1f, 0.08f, 0.07f), plasterTex);
             var shoeRed = Mat("Woman Shoes", new Color(0.45f, 0.12f, 0.1f), plasterTex);
             // Мамины туфли на обувнице, мои сандалии внизу, папины ботинки брошены посреди коридора.
-            Deco(PrimitiveType.Cube, "Mother Shoe", hall, new Vector3(1.0f, 0.43f, 1.8f), new Vector3(0.08f, 0.06f, 0.22f), shoeRed);
-            Deco(PrimitiveType.Cube, "Mother Shoe", hall, new Vector3(1.1f, 0.43f, 1.8f), new Vector3(0.08f, 0.06f, 0.22f), shoeRed);
-            var sandal = Mat("Sandal", new Color(0.4f, 0.26f, 0.15f), plasterTex);
-            Deco(PrimitiveType.Cube, "Sandal", hall, new Vector3(1.25f, 0.25f, 1.8f), new Vector3(0.07f, 0.04f, 0.17f), sandal);
-            Deco(PrimitiveType.Cube, "Sandal", hall, new Vector3(1.34f, 0.25f, 1.8f), new Vector3(0.07f, 0.04f, 0.17f), sandal);
+            if (chapter.decay < 4)
+            {
+                Deco(PrimitiveType.Cube, "Mother Shoe", hall, new Vector3(1.0f, 0.43f, 1.8f), new Vector3(0.08f, 0.06f, 0.22f), shoeRed);
+                Deco(PrimitiveType.Cube, "Mother Shoe", hall, new Vector3(1.1f, 0.43f, 1.8f), new Vector3(0.08f, 0.06f, 0.22f), shoeRed);
+            }
+            var kidShoe = chapter.decay == 0 ? Mat("Sandal", new Color(0.4f, 0.26f, 0.15f), plasterTex)
+                        : chapter.decay <= 2 ? Mat("Sneaker White", new Color(0.82f, 0.82f, 0.85f), plasterTex)
+                        : Mat("Sneaker Dark", new Color(0.15f, 0.15f, 0.17f), plasterTex);
+            float shoeLen = 0.17f + 0.025f * chapter.decay;
+            Deco(PrimitiveType.Cube, "Kid Shoe", hall, new Vector3(1.25f, 0.25f, 1.8f), new Vector3(0.075f, 0.05f, shoeLen), kidShoe);
+            Deco(PrimitiveType.Cube, "Kid Shoe", hall, new Vector3(1.34f, 0.25f, 1.8f), new Vector3(0.075f, 0.05f, shoeLen), kidShoe);
             var boot = Primitive(PrimitiveType.Cube, "Father Boot", hall, new Vector3(0.95f, 0.06f, 2.15f), new Vector3(0.11f, 0.12f, 0.3f), shoeDark);
             boot.transform.rotation = Quaternion.Euler(0f, 20f, 0f);
             Interact(boot, "Папины ботинки", "Грязные.", "Он пришёл поздно и даже не поставил их на место.");
@@ -157,7 +168,7 @@ var family = Box("Family Photo", living, new Vector3(9.3f, 1.6f, 1.665f), new Ve
                 var audio = radio.AddComponent<AudioSource>();
                 audio.clip = song;
                 audio.loop = true;
-                audio.playOnAwake = true;
+                audio.playOnAwake = chapter.decay < 4;  // в одиннадцатом классе в квартире тишина
                 audio.volume = 0.55f;
                 audio.spatialBlend = 1f;
                 audio.rolloffMode = AudioRolloffMode.Linear;
@@ -200,7 +211,7 @@ var family = Box("Family Photo", living, new Vector3(9.3f, 1.6f, 1.665f), new Ve
 
         // Календарь-плакат на 2004 год 48x72: красная шапка с «2004», ниже 12 месяцев (3 x 4).
         // В каждом месяце точки-дни по неделям, воскресенья красные. Два дня обведены.
-        static Color Calendar2004Pixel(int x, int y, float r)
+        static Color CalendarPixel(int x, int y, float r)
         {
             var paper = new Color(0.92f, 0.9f, 0.85f);
             var ink = new Color(0.25f, 0.25f, 0.28f);
@@ -210,7 +221,12 @@ var family = Box("Family Photo", living, new Vector3(9.3f, 1.6f, 1.665f), new Ve
             // Шапка с годом: цифры 3x5, увеличенные в 2 раза.
             if (y >= 61)
             {
-                string[] digits = { "111001111100111", "111101101101111", "111101101101111", "101101111001001" }; // 2 0 0 4
+                // Цифры 3x5 построчно, от 0 до 9.
+                string[] font = { "111101101101111", "010110010010111", "111001111100111", "111001111001111", "101101111001001",
+                                  "111100111001111", "111100111101111", "111001001001001", "111101111101111", "111101111001111" };
+                string year = chapter.year.ToString();
+                var digits = new string[4];
+                for (int i = 0; i < 4; i++) digits[i] = font[year[i] - '0'];
                 int gx = x - 9, gy = 70 - y;
                 if (gx >= 0 && gx < 30 && gy >= 0 && gy < 10)
                 {
@@ -226,12 +242,12 @@ var family = Box("Family Photo", living, new Vector3(9.3f, 1.6f, 1.665f), new Ve
             int lx = x - col * 16, ly = (59 - y) - row * 15;
             if (ly == 0 && lx >= 2 && lx <= 13) return ink;
 
-            var first = new System.DateTime(2004, month + 1, 1);
+            var first = new System.DateTime(chapter.year, month + 1, 1);
             int offset = ((int)first.DayOfWeek + 6) % 7;
-            int days = System.DateTime.DaysInMonth(2004, month + 1);
+            int days = System.DateTime.DaysInMonth(chapter.year, month + 1);
 
             // Обведённый день: 1 сентября.
-            foreach (var (m, day, color) in new[] { (8, 1, blue) })
+            foreach (var (m, day, color) in chapter.decay <= 2 ? new[] { (8, 1, blue) } : new (int, int, Color)[0])
             {
                 if (m != month) continue;
                 int cell = day - 1 + offset;

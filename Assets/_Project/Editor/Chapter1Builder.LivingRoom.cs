@@ -15,7 +15,7 @@ namespace Frustration.EditorTools
             var floor = Mat("Floor", new Color(0.45f, 0.3f, 0.22f), floorTex, 6f);
             var ceiling = Mat("Ceiling", new Color(0.6f, 0.6f, 0.58f), plasterTex);
             var wood = Mat("Wood Dark", new Color(0.3f, 0.18f, 0.1f), woodTex);
-            var wallpaper = Mat("Wallpaper Living", Color.white, MakeColorTexture("Wallpaper Living", 24, 32, WallpaperLivingPixel));
+            var wallpaper = Mat(Aged("Wallpaper Living"), Color.white, MakeColorTexture(Aged("Wallpaper Living"), 24, 32, Wear(WallpaperLivingPixel)));
             var carpet = Mat("Carpet", Color.white, MakeColorTexture("Carpet", 64, 48, CarpetPixel));
             var curtain = Mat("Curtain", Color.white, MakeColorTexture("Curtain", 16, 32, CurtainPixel));
             var crystal = Mat("Crystal", new Color(0.75f, 0.8f, 0.85f), plasterTex, 1f, new Color(0.1f, 0.1f, 0.12f));

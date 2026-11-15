@@ -31,9 +31,10 @@ namespace Frustration.EditorTools
             var kitchen = GameObject.Find("Kitchen").transform;
             var hall = GameObject.Find("Hallway").transform;
 
-            var wallpaperKid = Mat("Wallpaper Kid", Color.white, MakeColorTexture("Wallpaper Kid", 32, 32, WallpaperKidPixel));
-            var wallpaperHall = Mat("Wallpaper Hall", Color.white, MakeColorTexture("Wallpaper Hall", 32, 32, WallpaperHallPixel));
-            var tiles = Mat("Tiles", Color.white, MakeColorTexture("Tiles", 32, 32, TilePixel));
+            // С годами обои и кафель стареют (Wear), поэтому у каждого года свои текстуры.
+            var wallpaperKid = Mat(Aged("Wallpaper Kid"), Color.white, MakeColorTexture(Aged("Wallpaper Kid"), 32, 32, Wear(WallpaperKidPixel)));
+            var wallpaperHall = Mat(Aged("Wallpaper Hall"), Color.white, MakeColorTexture(Aged("Wallpaper Hall"), 32, 32, Wear(WallpaperHallPixel)));
+            var tiles = Mat(Aged("Tiles"), Color.white, MakeColorTexture(Aged("Tiles"), 32, 32, Wear(TilePixel)));
             var paint = Mat("Kitchen Paint", new Color(0.78f, 0.72f, 0.5f), plasterTex);
             var carpet = Mat("Carpet", Color.white, MakeColorTexture("Carpet", 64, 48, CarpetPixel));
             carpet.SetFloat("_OffsetFactor", -1f);
@@ -72,7 +73,14 @@ namespace Frustration.EditorTools
 
             // --- Детская ---
             // Ковёр на стене над кроватью: классика советской квартиры.
-            AddQuad("Wall Carpet", kid, false, 0.05f + 0.008f, +1, 4.05f, 5.85f, 0.7f, 1.95f, carpet, 1.8f, 1.25f, 4.05f, 0.7f, true);
+            if (chapter.decay < 3)
+                AddQuad("Wall Carpet", kid, false, 0.05f + 0.008f, +1, 4.05f, 5.85f, 0.7f, 1.95f, carpet, 1.8f, 1.25f, 4.05f, 0.7f, true);
+            else
+            {
+                // Ковёр со стены сняли (продали?): на выцветших обоях остался яркий прямоугольник.
+                var clean = Mat("Wallpaper Kid", Color.white, MakeColorTexture("Wallpaper Kid", 32, 32, WallpaperKidPixel));
+                AddQuad("Carpet Mark", kid, false, 0.05f + 0.006f, +1, 4.05f, 5.85f, 0.7f, 1.95f, clean, 0.5f, 0.5f, 0f, 0f);
+            }
             FlatCollider(FlatQuad("Floor Rug", kid, 1.1f, 2.4f, 3.925f, 4.875f, 0.006f, carpet, 1.3f, 0.95f));
             Box("Bookshelf", kid, new Vector3(3.33f, 1.45f, 4.4f), new Vector3(0.24f, 0.03f, 0.9f), wood);
             Color[] bookColors = { new Color(0.5f, 0.1f, 0.1f), new Color(0.1f, 0.25f, 0.45f), new Color(0.2f, 0.4f, 0.2f), new Color(0.6f, 0.5f, 0.2f), new Color(0.35f, 0.2f, 0.4f) };
@@ -81,7 +89,8 @@ namespace Frustration.EditorTools
                 float h = 0.16f + 0.05f * Mathf.PingPong(i * 0.37f, 1f);
                 Box("Book", kid, new Vector3(3.36f, 1.465f + h / 2f, 4.05f + i * 0.075f), new Vector3(0.16f, h, 0.05f), Mat("Book " + (i % bookColors.Length), bookColors[i % bookColors.Length], plasterTex));
             }
-            Curtains(kid, 1.6f, curtain);
+            if (chapter.decay < 3) Curtains(kid, 1.6f, curtain);
+            else Box("Curtain", kid, new Vector3(1.6f - 0.62f, 1.5f, 5.89f), new Vector3(0.32f, 1.45f, 0.02f), curtain);  // одна штора оборвана
 
             // --- Кухня ---
             // Плита, стол и стулья теперь строятся в Chapter1Builder.Furniture.cs.
@@ -143,8 +152,17 @@ namespace Frustration.EditorTools
             }
 
             // Отражение героя: мальчик в школьной форме.
-            var reflection = new GameObject("Reflection").transform;
-            var uniform = Mat("School Uniform", new Color(0.12f, 0.15f, 0.3f), plasterTex);
+            // Корень отражения (его двигает MirrorWorld) и тело мальчика внутри.
+            // С годами мальчик растёт и меняет одежду: костюм, свитер, толстовка с джинсами.
+            int d = chapter.decay;
+            var reflectionRoot = new GameObject("Reflection").transform;
+            reflectionRoot.localScale = Vector3.one * chapter.growth;
+            var reflection = new GameObject("Boy Body").transform;
+            reflection.SetParent(reflectionRoot, false);
+            var uniform = d <= 1 ? Mat("School Uniform", new Color(0.12f, 0.15f, 0.3f), plasterTex)
+                        : d == 2 ? Mat("Sweater Green", new Color(0.18f, 0.28f, 0.2f), plasterTex)
+                        : Mat("Hoodie", new Color(0.12f, 0.12f, 0.14f), plasterTex);
+            var legs = d >= 3 ? Mat("Jeans", new Color(0.2f, 0.27f, 0.45f), plasterTex) : uniform;
             var skin = Mat("Skin", new Color(0.6f, 0.45f, 0.38f), plasterTex);
             var hair = Mat("Hair", new Color(0.22f, 0.15f, 0.08f), plasterTex);
             var shirt = Mat("Shirt", new Color(0.85f, 0.85f, 0.82f), plasterTex);
@@ -153,28 +171,32 @@ namespace Frustration.EditorTools
             foreach (int s in new[] { -1, 1 })
             {
                 LocalPrimitive(PrimitiveType.Sphere, "Shoe", reflection, new Vector3(s * 0.07f, 0.035f, 0.03f), new Vector3(0.09f, 0.07f, 0.2f), shoes);
-                LocalPrimitive(PrimitiveType.Capsule, "Leg", reflection, new Vector3(s * 0.07f, 0.3f, 0f), new Vector3(0.1f, 0.24f, 0.11f), uniform);
+                LocalPrimitive(PrimitiveType.Capsule, "Leg", reflection, new Vector3(s * 0.07f, 0.3f, 0f), new Vector3(0.1f, 0.24f, 0.11f), legs);
                 var arm = LocalPrimitive(PrimitiveType.Capsule, "Arm", reflection, new Vector3(s * 0.19f, 0.73f, 0f), new Vector3(0.08f, 0.19f, 0.08f), uniform);
                 arm.transform.localRotation = Quaternion.Euler(0f, 0f, s * 6f);
-                LocalPrimitive(PrimitiveType.Sphere, "Cuff", reflection, new Vector3(s * 0.205f, 0.555f, 0f), Vector3.one * 0.065f, shirt);
+                if (d <= 1) LocalPrimitive(PrimitiveType.Sphere, "Cuff", reflection, new Vector3(s * 0.205f, 0.555f, 0f), Vector3.one * 0.065f, shirt);
                 LocalPrimitive(PrimitiveType.Sphere, "Hand", reflection, new Vector3(s * 0.21f, 0.5f, 0.01f), Vector3.one * 0.06f, skin);
                 LocalPrimitive(PrimitiveType.Sphere, "Ear", reflection, new Vector3(s * 0.1f, 1.13f, 0f), new Vector3(0.03f, 0.05f, 0.04f), skin);
                 LocalPrimitive(PrimitiveType.Sphere, "Eye", reflection, new Vector3(s * 0.04f, 1.14f, 0.093f), Vector3.one * 0.022f, eyes);
             }
             LocalPrimitive(PrimitiveType.Capsule, "Jacket", reflection, new Vector3(0f, 0.76f, 0f), new Vector3(0.3f, 0.25f, 0.19f), uniform);
-            LocalBox("Shirt Front", reflection, new Vector3(0f, 0.88f, 0.085f), new Vector3(0.08f, 0.16f, 0.02f), shirt);
-            LocalBox("Collar", reflection, new Vector3(0f, 0.98f, 0.05f), new Vector3(0.14f, 0.04f, 0.07f), shirt);
-            LocalBox("Bow Tie", reflection, new Vector3(0f, 0.955f, 0.095f), new Vector3(0.07f, 0.025f, 0.01f), eyes);
+            if (d <= 1)
+            {
+                LocalBox("Shirt Front", reflection, new Vector3(0f, 0.88f, 0.085f), new Vector3(0.08f, 0.16f, 0.02f), shirt);
+                LocalBox("Collar", reflection, new Vector3(0f, 0.98f, 0.05f), new Vector3(0.14f, 0.04f, 0.07f), shirt);
+            }
+            if (d == 0) LocalBox("Bow Tie", reflection, new Vector3(0f, 0.955f, 0.095f), new Vector3(0.07f, 0.025f, 0.01f), eyes);
+            if (d >= 3) LocalPrimitive(PrimitiveType.Sphere, "Hood", reflection, new Vector3(0f, 1.0f, -0.09f), new Vector3(0.24f, 0.12f, 0.12f), uniform);
             LocalPrimitive(PrimitiveType.Cylinder, "Neck", reflection, new Vector3(0f, 1.02f, 0f), new Vector3(0.07f, 0.03f, 0.07f), skin);
             LocalPrimitive(PrimitiveType.Sphere, "Head", reflection, new Vector3(0f, 1.13f, 0f), new Vector3(0.19f, 0.22f, 0.2f), skin);
             LocalPrimitive(PrimitiveType.Sphere, "Hair", reflection, new Vector3(0f, 1.18f, -0.015f), new Vector3(0.205f, 0.15f, 0.21f), hair);
-            LocalBox("Fringe", reflection, new Vector3(0f, 1.205f, 0.08f), new Vector3(0.15f, 0.035f, 0.03f), hair);
-            var satchel = Satchel(reflection, Vector3.zero, Quaternion.identity).transform;
+            LocalBox("Fringe", reflection, new Vector3(0f, d >= 3 ? 1.18f : 1.205f, 0.08f), new Vector3(0.16f, d >= 3 ? 0.08f : 0.035f, 0.03f), hair);
+            var satchel = (d == 0 ? Satchel(reflection, Vector3.zero, Quaternion.identity) : Backpack(reflection, Vector3.zero, Quaternion.identity)).transform;
             satchel.localPosition = new Vector3(0f, 0.58f, -0.13f);
             satchel.localRotation = Quaternion.Euler(0f, 180f, 0f);
 
             // Цветы в правой руке у отражения (показываются, когда герой их взял).
-            var flowers = new GameObject("Reflection Flowers").transform;
+            var flowers = new GameObject("Reflection Flowers").transform;  // в теле мальчика
             flowers.SetParent(reflection, false);
             flowers.localPosition = new Vector3(0.22f, 0.48f, 0.08f);
             var flowerMat = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/Gladiolus Red.mat");
@@ -183,12 +205,35 @@ namespace Frustration.EditorTools
                 var q = LocalPrimitive(PrimitiveType.Quad, "Flower", flowers, new Vector3(0f, 0.2f, 0f), new Vector3(0.14f, 0.45f, 1f), flowerMat);
                 q.transform.localRotation = Quaternion.Euler(0f, 30f + k * 90f, 0f);
             }
-            foreach (var c in reflection.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
+            // В последней главе во время испуга в зеркале на миг стоит не мальчик, а отец.
+            GameObject fatherLook = null;
+            if (d >= 4)
+            {
+                var f = new GameObject("Father Look").transform;
+                f.SetParent(reflectionRoot, false);
+                var undershirt = Mat("Undershirt", new Color(0.78f, 0.76f, 0.7f), plasterTex);
+                var pants = Mat("Track Pants", new Color(0.12f, 0.16f, 0.35f), plasterTex);
+                foreach (int s in new[] { -1, 1 })
+                {
+                    LocalPrimitive(PrimitiveType.Capsule, "Leg", f, new Vector3(s * 0.08f, 0.3f, 0f), new Vector3(0.12f, 0.24f, 0.12f), pants);
+                    LocalPrimitive(PrimitiveType.Capsule, "Arm", f, new Vector3(s * 0.21f, 0.72f, 0f), new Vector3(0.09f, 0.2f, 0.09f), skin);
+                }
+                LocalPrimitive(PrimitiveType.Capsule, "Torso", f, new Vector3(0f, 0.76f, 0.01f), new Vector3(0.34f, 0.26f, 0.24f), undershirt);
+                LocalPrimitive(PrimitiveType.Sphere, "Head", f, new Vector3(0f, 1.13f, 0f), new Vector3(0.2f, 0.23f, 0.21f), skin);
+                LocalPrimitive(PrimitiveType.Sphere, "Hair", f, new Vector3(0f, 1.19f, -0.02f), new Vector3(0.21f, 0.13f, 0.21f), FatherHair());
+                LocalPrimitive(PrimitiveType.Sphere, "Eye", f, new Vector3(-0.04f, 1.14f, 0.095f), Vector3.one * 0.02f, eyes);
+                LocalPrimitive(PrimitiveType.Sphere, "Eye", f, new Vector3(0.04f, 1.14f, 0.095f), Vector3.one * 0.02f, eyes);
+                f.gameObject.SetActive(false);
+                fatherLook = f.gameObject;
+            }
+            foreach (var c in reflectionRoot.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
 
             var mirror = new GameObject("Mirror").AddComponent<MirrorWorld>();
             mirror.planeZ = MirrorPlaneZ;
             mirror.player = player;
-            mirror.reflection = reflection;
+            mirror.reflection = reflectionRoot;
+            mirror.scareShow = fatherLook;
+            mirror.scareHide = fatherLook != null ? reflection.gameObject : null;
             mirror.reflectionSatchel = satchel.gameObject;
             mirror.reflectionFlowers = flowers.gameObject;
             mirror.mirrorX = cx;

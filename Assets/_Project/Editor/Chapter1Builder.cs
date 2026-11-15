@@ -19,42 +19,7 @@ namespace Frustration.EditorTools
         static Shader ps1Shader;
         static Texture2D plasterTex, floorTex, woodTex;
 
-        [MenuItem("Frustration/Build Chapter 1")]
-        public static void Build()
-        {
-            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-
-            Directory.CreateDirectory(Root + "/Scenes");
-            Directory.CreateDirectory(Root + "/Materials");
-            Directory.CreateDirectory(Root + "/Textures");
-
-            ps1Shader = Shader.Find("Frustration/PS1 Lit");
-            if (ps1Shader == null) ps1Shader = Shader.Find("Universal Render Pipeline/Lit");
-
-            plasterTex = MakeTexture("Plaster", 32, (x, y, r) => 0.82f + 0.18f * r);
-            floorTex = MakeTexture("Linoleum", 32, (x, y, r) => (((x / 8) + (y / 8)) % 2 == 0 ? 0.95f : 0.75f) - 0.12f * r);
-            woodTex = MakeTexture("Wood", 32, (x, y, r) => 0.75f + 0.2f * Mathf.Sin(y * 0.9f + r * 2f) * 0.5f + 0.1f * r);
-
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
-            SetupLighting();
-            BuildApartment();
-            BuildKidRoom();
-            BuildKitchen();
-            BuildHallway();
-            BuildLivingRoom();
-            BuildInterior();
-            BuildDetails();
-            BuildFurniture();
-            BuildOutside();
-            var player = BuildPlayerAndSystems();
-            BuildMirror(player);
-
-            EditorSceneManager.SaveScene(scene, ScenePath);
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
-            AssetDatabase.SaveAssets();
-            Debug.Log("[Frustration] Chapter 1 scene built: " + ScenePath);
-        }
+        // Сборка всех глав — в Chapter1Builder.Chapters.cs (меню Frustration > Build All Chapters).
 
         // ---------- Свет и туман ----------
 
@@ -129,8 +94,21 @@ namespace Frustration.EditorTools
 
             // Кровать — в Chapter1Builder.Furniture.cs.
             // Стол, стул, шкаф, лампа и мелочи — в Chapter1Builder.Furniture.cs.
-            var backpack = Satchel(room, new Vector3(2.8f, 0.47f, 5.05f), Quaternion.Euler(0f, -90f, 0f));
-            var pickup = Interact(backpack, "Взять ранец", "Новый ранец. Мама купила его на рынке.", "Он пахнет клеем.");
+            // В первом классе — ранец, потом обычный рюкзак.
+            GameObject backpack;
+            Interactable pickup;
+            if (chapter.decay == 0)
+            {
+                backpack = Satchel(room, new Vector3(2.8f, 0.47f, 5.05f), Quaternion.Euler(0f, -90f, 0f));
+                pickup = Interact(backpack, "Взять ранец", "Новый ранец. Мама купила его на рынке.", "Он пахнет клеем.");
+            }
+            else
+            {
+                backpack = Backpack(room, new Vector3(2.8f, 0.47f, 5.05f), Quaternion.Euler(0f, -90f, 0f));
+                pickup = chapter.decay >= 3
+                    ? Interact(backpack, "Взять рюкзак", "Рюкзак.", "Внутри одна тетрадь на все предметы.")
+                    : Interact(backpack, "Взять рюкзак", "Рюкзак. Тяжёлый от учебников.");
+            }
             pickup.setsFlag = "backpack";
             pickup.hideAfterUse = true;
 
@@ -170,7 +148,7 @@ namespace Frustration.EditorTools
             // Лампа над столом мигает и иногда почти гаснет.
             Primitive(PrimitiveType.Sphere, "Lamp Glow Kitchen", room, new Vector3(5.8f, 2.35f, 4.8f), Vector3.one * 0.12f, Mat("Bulb", Color.black, plasterTex, 1f, new Color(1f, 0.8f, 0.5f)));
             Box("Lamp Cord", room, new Vector3(5.8f, 2.5f, 4.8f), new Vector3(0.015f, 0.2f, 0.015f), Mat("Strap", new Color(0.08f, 0.08f, 0.08f), plasterTex));
-            var lamp = PointLight("Kitchen Lamp", room, new Vector3(5.8f, 2.2f, 4.8f), new Color(1f, 0.75f, 0.45f), 1.6f, 5f);
+            var lamp = PointLight("Kitchen Lamp", room, new Vector3(5.8f, 2.2f, 4.8f), new Color(1f, 0.75f, 0.45f), 1.6f * (1f - 0.07f * chapter.decay), 5f);
             lamp.gameObject.AddComponent<LightFlicker>().amount = 0.15f;
 
             var window = Window("Kitchen Window", room, new Vector3(5.5f, 1.5f, 5.94f));
@@ -196,16 +174,12 @@ namespace Frustration.EditorTools
             var door = Box("Front Door", hall, new Vector3(0.06f, 1.02f, 2.3f), new Vector3(0.06f, 2.05f, 0.9f), doorMat);
             var exit = door.AddComponent<ExitDoor>();
             exit.prompt = "Выйти в школу";
-            // Чтобы выйти, надо прочитать мамину записку, взять цветы и ранец.
-            exit.requiredFlags = new[] { "note", "flowers", "backpack" };
-            exit.missingLines = new[]
-            {
-                "Мамы нигде нет. Может, она что-то оставила на кухне?",
-                "Цветы! Мама купила их для учительницы.",
-                "Без ранца в школу нельзя.",
-            };
-            exit.endTitle = "Глава 1. Первый класс";
-            exit.endSubtitle = "Продолжение следует";
+            // Что нужно сделать перед выходом, зависит от главы (см. Chapter1Builder.Chapters.cs).
+            exit.requiredFlags = chapter.requiredFlags;
+            exit.missingLines = chapter.missingLines;
+            exit.endTitle = $"Глава {chapter.number}. {chapter.gradeName}";
+            exit.endSubtitle = nextChapter == null ? "Продолжение следует" : "";
+            exit.nextScene = nextChapter?.sceneName;
 
             PointLight("Hall Bulb", hall, new Vector3(3.5f, 2.3f, 2.3f), new Color(1f, 0.85f, 0.6f), 1.0f, 5f);
             PointLight("Hall Entrance Light", hall, new Vector3(0.9f, 2.2f, 2.3f), new Color(1f, 0.85f, 0.6f), 0.45f, 3f);
@@ -221,13 +195,15 @@ namespace Frustration.EditorTools
             player.transform.position = new Vector3(1.4f, 0.05f, 4.6f);
             player.transform.rotation = Quaternion.Euler(0f, 160f, 0f);
             var controller = player.AddComponent<CharacterController>();
-            controller.height = 1.2f;
+            // Герой растёт от главы к главе: выше камера и капсула персонажа.
+            float g = chapter.growth;
+            controller.height = 1.2f * g;
             controller.radius = 0.22f;
-            controller.center = new Vector3(0f, 0.6f, 0f);
+            controller.center = new Vector3(0f, 0.6f * g, 0f);
 
             var pivot = new GameObject("Camera Pivot");
             pivot.transform.SetParent(player.transform, false);
-            pivot.transform.localPosition = new Vector3(0f, 1.1f, 0f);
+            pivot.transform.localPosition = new Vector3(0f, 1.1f * g, 0f);
             var cam = pivot.AddComponent<Camera>();
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 60f;
@@ -251,7 +227,8 @@ namespace Frustration.EditorTools
             screenCam.depth = 10;
 
             var ui = new GameObject("Game UI").AddComponent<GameUI>();
-            ui.introLines = new[] { "Мама меня не разбудила.", "Сегодня первое сентября. Надо собираться." };
+            ui.introSubtitle = $"1 сентября {chapter.year} года";
+            ui.introLines = chapter.introLines;
 
             // Общий гул убран: теперь в квартире звучит радио из зала.
             return player.transform;

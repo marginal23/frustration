@@ -29,12 +29,30 @@ namespace Frustration.EditorTools
             Interact(wardrobe.gameObject, "Шкаф", "В шкафу пахнет нафталином.", "Мама повесила туда мой новый костюм. Теперь он на мне.");
             var lamp = DeskLamp(kid, new Vector3(2.58f, 0.75f, 5.78f), 120f);
             Interact(lamp.gameObject, "Настольная лампа", "Мама включила её, чтобы я не одевался в темноте.");
-            var bear = TeddyBear(kid, new Vector3(0.45f, 0.5f, 5.35f), 90f);
+            // Мишка: в первом классе на кровати, потом пылится на шкафу, к девятому классу его нет.
+            int d = chapter.decay;
+            Transform bear = null;
+            if (d == 0) bear = TeddyBear(kid, new Vector3(0.45f, 0.5f, 5.35f), 90f);
+            else if (d <= 2) bear = TeddyBear(kid, new Vector3(3.17f, 2.0f, 3.48f), -90f);
+            if (bear != null)
             Interact(bear.gameObject, "Мишка", "Мишка остаётся дома.", "Я уже большой.");
             var alarm = AlarmClock(kid, new Vector3(3.28f, 0.75f, 5.8f), -100f);
             Interact(alarm.gameObject, "Будильник", "Мама завела его на шесть тридцать.", "Он не прозвенел. Я проснулся сам.");
-            var primer = Primer(kid, new Vector3(3.15f, 0.75f, 5.42f), 12f);
-            Interact(primer.gameObject, "Букварь", "Я уже знаю все буквы.", "Почти все.");
+            if (d == 0)
+            {
+                var primer = Primer(kid, new Vector3(3.15f, 0.75f, 5.42f), 12f);
+                Interact(primer.gameObject, "Букварь", "Я уже знаю все буквы.", "Почти все.");
+            }
+            else
+            {
+                // Стопка учебников вместо букваря.
+                var books = Group("Textbooks", kid, new Vector3(3.15f, 0.75f, 5.42f), 12f);
+                Color[] covers = { new Color(0.2f, 0.35f, 0.55f), new Color(0.55f, 0.2f, 0.15f), new Color(0.25f, 0.45f, 0.25f), new Color(0.6f, 0.5f, 0.2f) };
+                for (int i = 0; i < 4 - (d >= 3 ? 2 : 0); i++)
+                    Part(books, "Book", new Vector3(0.005f * i, 0.012f + i * 0.024f, 0f), new Vector3(0.17f, 0.022f, 0.24f), Mat("Textbook " + i, covers[i], plasterTex), ry: i * 7f);
+                Solid(books, new Vector3(0f, 0.05f, 0f), new Vector3(0.18f, 0.1f, 0.25f));
+                Interact(books.gameObject, "Учебники", d >= 3 ? new[] { "Учебники.", "Я их даже не открывал." } : new[] { $"Учебники для {chapter.grade} класса.", "Мама обернула их в газету." });
+            }
             KidRoomDoor(kid);
             var bed = KidBed(kid, new Vector3(0.5f, 0f, 4.95f));
             Interact(bed.gameObject, "Кровать", "Ещё темно. А мама сказала, что сегодня праздник.");
@@ -56,9 +74,7 @@ namespace Frustration.EditorTools
                 Mat("Mom Note", Color.white, MakeColorTexture("Mom Note", 12, 16, NotePixel)));
             note.transform.rotation = Quaternion.Euler(0f, 90f, 4f);
             Deco(PrimitiveType.Sphere, "Magnet", kitchen, new Vector3(6.352f, 1.15f, 5.6f), new Vector3(0.012f, 0.03f, 0.03f), Mat("Calendar Red", new Color(0.65f, 0.12f, 0.1f), plasterTex));
-            var readNote = Interact(note, "Записка", "Записка от мамы.",
-                "«Сынок, я на смене до вечера. Цветы на столе, ранец на стуле.»",
-                "«Папу не буди. Ключ под ковриком. Люблю тебя.»");
+            var readNote = Interact(note, "Записка", chapter.noteLines);
             readNote.setsFlag = "note";
             var stove = ElectricStove(kitchen, new Vector3(6.68f, 0f, 3.32f), -90f);
             Interact(stove.gameObject, "Плита", "Чайник холодный. Никто не завтракал.");
@@ -67,8 +83,12 @@ namespace Frustration.EditorTools
             Interact(cupboard.gameObject, "Шкафчик", "Здесь мама держит крупу и спички.");
             KitchenTv(kitchen, new Vector3(3.78f, 0f, 5.15f), 90f);
             WallCabinet(kitchen, new Vector3(3.71f, 0f, 4.0f), 90f);
-            var father = Father(kitchen, new Vector3(6.6f, 0f, 4.8f), -90f);
-            Interact(father.gameObject, "Папа", "Папа спит за столом.", "Лучше его не будить.");
+            // В шестом классе отец спит на диване в зале (см. Chapters.cs), в остальные годы — за столом.
+            if (d != 2)
+            {
+                var father = Father(kitchen, new Vector3(6.6f, 0f, 4.8f), -90f);
+                Interact(father.gameObject, "Папа", d >= 3 ? new[] { "Папа спит за столом.", "Как всегда." } : new[] { "Папа спит за столом.", "Лучше его не будить." });
+            }
 
             // ================= Зал =================
             WallUnit(living);
@@ -172,7 +192,7 @@ namespace Frustration.EditorTools
             var bulbOff = Mat("Bulb Off", new Color(0.75f, 0.73f, 0.65f), plasterTex);
             var shade = Frustum("Lamp Glow Kid Shade", room, center + new Vector3(0f, 2.1f, 0f), 0.22f, 0.06f, 0.2f, shadeOn);
             var bulb = Deco(PrimitiveType.Sphere, "Lamp Glow Kid Bulb", room, center + new Vector3(0f, 2.16f, 0f), Vector3.one * 0.07f, bulbOn);
-            var light = PointLight("Kid Ceiling Lamp", room, center + new Vector3(0f, 2.0f, 0f), new Color(1f, 0.8f, 0.55f), 0.9f, 4.5f);
+            var light = PointLight("Kid Ceiling Lamp", room, center + new Vector3(0f, 2.0f, 0f), new Color(1f, 0.8f, 0.55f), 0.9f * (1f - 0.07f * chapter.decay), 4.5f);
             light.gameObject.AddComponent<LightFlicker>().amount = 0.04f;
             LightSwitchOn(room, true, 3f, +1, 2.05f, new[] { light },
                 new[] { shade.GetComponent<Renderer>(), bulb.GetComponent<Renderer>() },
@@ -188,21 +208,22 @@ namespace Frustration.EditorTools
             var tulipOff = DoubleSided(Mat("Tulip Off", new Color(0.78f, 0.76f, 0.7f), plasterTex));
             Deco(PrimitiveType.Cylinder, "Chandelier Rod", room, center + new Vector3(0f, 2.47f, 0f), new Vector3(0.02f, 0.13f, 0.02f), brass);
             Deco(PrimitiveType.Sphere, "Chandelier Body", room, center + new Vector3(0f, 2.32f, 0f), new Vector3(0.12f, 0.1f, 0.12f), brass);
-            var glows = new Renderer[5];
-            var on = new Material[5];
-            var off = new Material[5];
+            var glows = new System.Collections.Generic.List<Renderer>();
+            var on = new System.Collections.Generic.List<Material>();
+            var off = new System.Collections.Generic.List<Material>();
             for (int i = 0; i < 5; i++)
             {
                 float a = i * Mathf.PI * 2f / 5f;
                 var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
                 var arm = Deco(PrimitiveType.Cube, "Chandelier Arm", room, center + new Vector3(0f, 2.29f, 0f) + dir * 0.12f, new Vector3(0.015f, 0.015f, 0.24f), brass);
                 arm.transform.rotation = Quaternion.LookRotation(dir);
-                glows[i] = Frustum("Lamp Glow Living Tulip", room, center + new Vector3(0f, 2.26f, 0f) + dir * 0.24f, 0.03f, 0.075f, 0.11f, tulipOff).GetComponent<Renderer>();
-                on[i] = tulipOn;
-                off[i] = tulipOff;
+                if (chapter.decay >= 2 && i == 3) continue;  // плафон разбили
+                glows.Add(Frustum("Lamp Glow Living Tulip", room, center + new Vector3(0f, 2.26f, 0f) + dir * 0.24f, 0.03f, 0.075f, 0.11f, tulipOff).GetComponent<Renderer>());
+                on.Add(tulipOn);
+                off.Add(tulipOff);
             }
             var light = PointLight("Chandelier Light", room, center + new Vector3(0f, 2.15f, 0f), new Color(1f, 0.82f, 0.55f), 1.3f, 5.5f);
-            LightSwitchOn(room, false, 7f, +1, 3.0f, new[] { light }, glows, on, off, false);
+            LightSwitchOn(room, false, 7f, +1, 3.0f, new[] { light }, glows.ToArray(), on.ToArray(), off.ToArray(), false);
         }
 
         // Советская деревянная кровать: полированные спинки, клетчатое одеяло, подушка уголком.
@@ -220,9 +241,15 @@ namespace Frustration.EditorTools
             Part(g, "Side Rail", new Vector3(-0.44f, 0.3f, 0f), new Vector3(0.03f, 0.16f, 1.82f), veneer);
             Part(g, "Side Rail", new Vector3(0.44f, 0.3f, 0f), new Vector3(0.03f, 0.16f, 1.82f), veneer);
             Part(g, "Mattress", new Vector3(0f, 0.43f, 0f), new Vector3(0.84f, 0.14f, 1.82f), sheet);
-            Part(g, "Blanket", new Vector3(0f, 0.515f, -0.3f), new Vector3(0.88f, 0.03f, 1.25f), plaid);
-            Part(g, "Blanket Side", new Vector3(-0.445f, 0.43f, -0.3f), new Vector3(0.01f, 0.2f, 1.25f), plaid);
-            Part(g, "Blanket Side", new Vector3(0.445f, 0.43f, -0.3f), new Vector3(0.01f, 0.2f, 1.25f), plaid);
+            if (chapter.decay >= 3)
+                Part(g, "Blanket", new Vector3(0.08f, 0.54f, -0.45f), new Vector3(0.7f, 0.08f, 0.7f), plaid, PrimitiveType.Sphere, ry: 25f);  // скомкано
+            else
+                Part(g, "Blanket", new Vector3(0f, 0.515f, -0.3f), new Vector3(0.88f, 0.03f, 1.25f), plaid);
+            if (chapter.decay < 3)
+            {
+                Part(g, "Blanket Side", new Vector3(-0.445f, 0.43f, -0.3f), new Vector3(0.01f, 0.2f, 1.25f), plaid);
+                Part(g, "Blanket Side", new Vector3(0.445f, 0.43f, -0.3f), new Vector3(0.01f, 0.2f, 1.25f), plaid);
+            }
             Part(g, "Pillow", new Vector3(0f, 0.56f, 0.66f), new Vector3(0.62f, 0.15f, 0.42f), pillow, PrimitiveType.Sphere);
             Part(g, "Pillow Dent", new Vector3(0.02f, 0.6f, 0.64f), new Vector3(0.3f, 0.06f, 0.22f), Mat("Pillow Shade", new Color(0.78f, 0.77f, 0.73f), plasterTex), PrimitiveType.Sphere);
             Solid(g, new Vector3(0f, 0.45f, 0f), new Vector3(0.92f, 0.9f, 1.9f));
@@ -236,7 +263,7 @@ namespace Frustration.EditorTools
             var shirt = Mat("Undershirt", new Color(0.78f, 0.76f, 0.7f), plasterTex);
             var pants = Mat("Track Pants", new Color(0.12f, 0.16f, 0.35f), plasterTex);
             var skin = Mat("Skin", new Color(0.6f, 0.45f, 0.38f), plasterTex);
-            var hair = Mat("Hair Father", new Color(0.15f, 0.12f, 0.1f), plasterTex);
+            var hair = FatherHair();
             var slipper = Mat("Slipper Father", new Color(0.3f, 0.2f, 0.12f), plasterTex);
             Part(g, "Pelvis", new Vector3(0f, 0.58f, -0.02f), new Vector3(0.38f, 0.2f, 0.32f), pants, PrimitiveType.Sphere);
             foreach (int s in new[] { -1, 1 })
@@ -250,7 +277,7 @@ namespace Frustration.EditorTools
                 Part(g, "Elbow", new Vector3(s * 0.23f, 0.81f, 0.43f), Vector3.one * 0.09f, skin, PrimitiveType.Sphere);
             }
             Part(g, "Torso", new Vector3(0f, 0.84f, 0.1f), new Vector3(0.42f, 0.3f, 0.26f), shirt, PrimitiveType.Capsule, rx: 35f);
-            Part(g, "Belly", new Vector3(0f, 0.72f, 0.12f), new Vector3(0.36f, 0.2f, 0.26f), shirt, PrimitiveType.Sphere);
+            Part(g, "Belly", new Vector3(0f, 0.72f, 0.12f + 0.012f * chapter.decay), new Vector3(0.36f + 0.02f * chapter.decay, 0.2f, 0.26f + 0.025f * chapter.decay), shirt, PrimitiveType.Sphere);
             Part(g, "Forearm", new Vector3(0f, 0.8f, 0.45f), new Vector3(0.085f, 0.25f, 0.085f), skin, PrimitiveType.Capsule, ry: 12f, rz: 90f);
             Part(g, "Forearm", new Vector3(0f, 0.825f, 0.5f), new Vector3(0.085f, 0.25f, 0.085f), skin, PrimitiveType.Capsule, ry: -12f, rz: 90f);
             Part(g, "Hand", new Vector3(0.22f, 0.81f, 0.53f), new Vector3(0.08f, 0.05f, 0.1f), skin, PrimitiveType.Sphere);
@@ -314,9 +341,11 @@ namespace Frustration.EditorTools
                 Part(g, "Leg", new Vector3(s * 0.36f, 0.025f, -0.12f), new Vector3(0.03f, 0.05f, 0.03f), Black);
             }
             Part(g, "Doily", new Vector3(0f, 0.312f, 0f), new Vector3(0.32f, 0.002f, 0.22f), Mat("Doily", new Color(0.9f, 0.9f, 0.86f), plasterTex), PrimitiveType.Cylinder);
+            if (chapter.decay < 4) {
             var pinkGlass = DoubleSided(Mat("Perfume Glass", new Color(0.85f, 0.6f, 0.65f), plasterTex, 1f, new Color(0.08f, 0.04f, 0.05f)));
             Frustum("Perfume", g, g.TransformPoint(new Vector3(-0.24f, 0.31f, 0f)), 0.03f, 0.022f, 0.08f, pinkGlass, 6);
             Part(g, "Perfume Cap", new Vector3(-0.24f, 0.4f, 0f), Vector3.one * 0.025f, Mat("Gold Strip", new Color(0.8f, 0.62f, 0.25f), plasterTex, 1f, new Color(0.06f, 0.045f, 0.01f)), PrimitiveType.Sphere);
+            }
             Part(g, "Hairbrush", new Vector3(0.2f, 0.322f, 0.02f), new Vector3(0.05f, 0.02f, 0.16f), Mat("Wood Dark", new Color(0.3f, 0.18f, 0.1f), woodTex), ry: 15f);
             Solid(g, new Vector3(0f, 0.16f, 0f), new Vector3(0.84f, 0.32f, 0.32f));
         }
@@ -506,7 +535,7 @@ namespace Frustration.EditorTools
             Part(g, "Arm High", new Vector3(0f, 0.34f, 0.04f), new Vector3(0.015f, 0.1f, 0.015f), Metal, PrimitiveType.Cylinder, 75f);
             Part(g, "Shade", new Vector3(0f, 0.32f, 0.16f), new Vector3(0.12f, 0.06f, 0.12f), green, PrimitiveType.Cylinder, 35f);
             Part(g, "Bulb", new Vector3(0f, 0.29f, 0.18f), Vector3.one * 0.045f, Mat("Bulb", Color.black, plasterTex, 1f, new Color(1f, 0.8f, 0.5f)), PrimitiveType.Sphere);
-            var light = PointLight("Desk Lamp Light", g, g.TransformPoint(new Vector3(0f, 0.22f, 0.24f)), new Color(1f, 0.82f, 0.55f), 0.9f, 2.5f);
+            var light = PointLight("Desk Lamp Light", g, g.TransformPoint(new Vector3(0f, 0.22f, 0.24f)), new Color(1f, 0.82f, 0.55f), 0.9f * (1f - 0.07f * chapter.decay), 2.5f);
             light.gameObject.AddComponent<LightFlicker>().amount = 0.03f;
             Solid(g, new Vector3(0f, 0.2f, 0.05f), new Vector3(0.14f, 0.4f, 0.3f));
             return g;
@@ -802,7 +831,7 @@ namespace Frustration.EditorTools
                 {
                     // Нижняя полка витрины: хрустальные рюмки и бокалы в два ряда.
                     var crystalTwo = DoubleSided(Mat("Crystal Cut", new Color(0.78f, 0.82f, 0.88f), plasterTex, 1f, new Color(0.14f, 0.14f, 0.16f)));
-                    for (int i = 0; i < 4; i++)
+                    for (int i = 0; i < (chapter.decay >= 3 ? 2 : 4); i++)
                     {
                         var basePos = new Vector3(cx - 0.17f + i * 0.11f, 0.8f, 5.82f);
                         Frustum("Crystal Glass", g, basePos, 0.022f, 0.035f, 0.11f, crystalTwo, 6);
@@ -851,6 +880,11 @@ namespace Frustration.EditorTools
             Deco(PrimitiveType.Cube, "Medal Velvet", room, medalPos + new Vector3(0f, 0.041f, 0f), new Vector3(0.105f, 0.002f, 0.075f), Mat("Velvet Blue", new Color(0.12f, 0.12f, 0.3f), plasterTex));
             var lid = Deco(PrimitiveType.Cube, "Medal Lid", room, medalPos + new Vector3(0f, 0.08f, 0.05f), new Vector3(0.12f, 0.08f, 0.012f), velvet);
             lid.transform.rotation = Quaternion.Euler(-15f, 0f, 0f);
+            if (chapter.decay >= 3)
+            {
+                Interact(medal, "Коробочка", "Медали нет.", "Папа сказал, что потерял.");
+                return;
+            }
             Deco(PrimitiveType.Cube, "Medal Ribbon", room, medalPos + new Vector3(0f, 0.044f, 0.012f), new Vector3(0.026f, 0.003f, 0.03f), Mat("Medal Ribbon", new Color(0.55f, 0.56f, 0.58f), plasterTex));
             Deco(PrimitiveType.Cube, "Medal Ribbon Stripe", room, medalPos + new Vector3(0f, 0.0455f, 0.012f), new Vector3(0.006f, 0.002f, 0.03f), Mat("Velvet Blue", new Color(0.12f, 0.12f, 0.3f), plasterTex));
             Deco(PrimitiveType.Cylinder, "Medal", room, medalPos + new Vector3(0f, 0.044f, -0.02f), new Vector3(0.034f, 0.002f, 0.034f), Mat("Medal Silver", new Color(0.75f, 0.75f, 0.72f), plasterTex, 1f, new Color(0.08f, 0.08f, 0.08f)));

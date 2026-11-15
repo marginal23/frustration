@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Frustration
 {
@@ -11,6 +12,8 @@ namespace Frustration
         [TextArea] public string[] missingLines = { "Без ранца в школу нельзя." };
         [TextArea] public string endTitle = "Конец пролога";
         [TextArea] public string endSubtitle = "Продолжение следует";
+        [Tooltip("Сцена следующей главы. Пусто — игра на этом заканчивается.")]
+        public string nextScene;
 
         bool finished;
 
@@ -34,6 +37,9 @@ namespace Frustration
             if (player != null) player.inputLocked = true;
             yield return GameUI.Instance.FadeTo(1f, 2.5f);
             GameUI.Instance.ShowTitle(endTitle, endSubtitle);
+            if (string.IsNullOrEmpty(nextScene)) yield break;
+            yield return new WaitForSeconds(4f);
+            SceneManager.LoadScene(nextScene);
         }
     }
 }

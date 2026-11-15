@@ -27,6 +27,9 @@ namespace Frustration
         public float scareDistance = 2.6f;
         public float scareSeconds = 1.6f;
         public Light flickerLight;
+        [Tooltip("Что показать в отражении во время испуга (например, фигуру отца) и что спрятать.")]
+        public GameObject scareShow;
+        public GameObject scareHide;
 
         static readonly int MirrorPlaneId = Shader.PropertyToID("_MirrorPlane");
 
@@ -45,7 +48,12 @@ namespace Frustration
             {
                 scareTimer -= Time.deltaTime;
                 if (flickerLight != null) flickerLight.intensity = savedIntensity * (Random.value < 0.3f ? 0.05f : 0.25f);
-                if (scareTimer <= 0f && flickerLight != null) flickerLight.intensity = savedIntensity;
+                if (scareTimer <= 0f)
+                {
+                    if (flickerLight != null) flickerLight.intensity = savedIntensity;
+                    if (scareShow != null) scareShow.SetActive(false);
+                    if (scareHide != null) scareHide.SetActive(true);
+                }
                 return; // отражение стоит на месте и не повторяет движения
             }
 
@@ -77,6 +85,8 @@ namespace Frustration
             if (reflectionSatchel != null) reflectionSatchel.SetActive(true);
             if (reflectionFlowers != null) reflectionFlowers.SetActive(true);
             if (flickerLight != null) savedIntensity = flickerLight.intensity;
+            if (scareShow != null) scareShow.SetActive(true);
+            if (scareHide != null) scareHide.SetActive(false);
 
             var sting = new GameObject("Mirror Sting").AddComponent<AudioSource>();
             sting.clip = ProceduralSfx.Sting();
